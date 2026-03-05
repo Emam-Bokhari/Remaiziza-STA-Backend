@@ -2,11 +2,11 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import { StatusCodes } from "http-status-codes";
 import { Morgan } from "./shared/morgan";
-import router from "../src/app/routes";
 import globalErrorHandler from "./app/middlewares/globalErrorHandler";
 import path from "path";
 import v2Router from "./app/routes/v2";
 import { handleStripeWebhook } from "./helpers/webhooks/handleStripeWebhook";
+import router from "./app/routes";
 
 const app: Application = express();
 
