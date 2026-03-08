@@ -100,8 +100,8 @@ const createBookingPaymentSession = async (
       transactionId: transaction._id.toString(),
       bookingId: booking._id.toString(),
     },
-    success_url: `http://10.10.7.41:5005/success`,
-    cancel_url: `http://10.10.7.41:5005/fail`,
+    success_url: `https://api.gogreenmatrix.my/success`,
+    cancel_url: `https://api.gogreenmatrix.my/fail`,
   });
 
   transaction.stripeSessionId = session.id;

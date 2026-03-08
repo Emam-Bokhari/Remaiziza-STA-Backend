@@ -156,12 +156,15 @@ const handleAccountUpdated = async (account: any) => {
     account.charges_enabled &&
     account.requirements?.currently_due?.length === 0
   ) {
+    console.log("Account ready for onboarding:", account.id, "update start");
+
+
     const host = await User.findOneAndUpdate(
-      { stripeConnectedAccountId: account.id, isStripeOnboarded: false },
+      { stripeConnectedAccountId: account.id },
       { isStripeOnboarded: true },
       { new: true },
     );
-
+    console.log("Host:", host, "update isStripeOnboarded to true");
     if (host) console.log(`✅ Host onboarded: ${host._id}`);
     else console.log("No host found to update or already onboarded");
   } else {

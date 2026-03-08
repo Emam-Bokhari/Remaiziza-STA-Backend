@@ -5,16 +5,18 @@ import stripeService from "./stripe.service";
 
 const createStripeAccount = catchAsync(async (req, res) => {
   const user = req.user;
-  
+
   const stripeAccount = await stripeService.createConnectedAccount(user.email);
 
   await User.findByIdAndUpdate(user.id, {
     stripeConnectedAccountId: stripeAccount.id,
   });
 
-  const returnUrl = "https://yourapp.com/stripe/onboarding/success";
-  const refreshUrl = "https://yourapp.com/stripe/onboarding/refresh";
 
+  // const returnUrl = "https://yourapp.com/stripe/onboarding/success";
+  // const refreshUrl = "https://yourapp.com/stripe/onboarding/refresh";
+  const returnUrl = "http://10.10.7.41:5005";
+  const refreshUrl = "http://10.10.7.41:5005";
   const onboardingLink = await stripeService.createAccountLink(
     stripeAccount.id,
     returnUrl,
