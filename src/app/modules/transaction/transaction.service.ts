@@ -40,6 +40,28 @@ const createBookingPaymentSession = async (
     throw new Error("Cancelled booking cannot be paid");
   }
 
+  const now = new Date();
+
+  // 1️⃣ Expiry validation: If booking fromDate is in the past, it's too late to pay
+  if (new Date(booking.fromDate) < now) {
+    throw new ApiError(400, "Booking period has already started or passed. Cannot proceed with payment.");
+  }
+
+  // 2️⃣ Conflict validation: If the user already has another confirmed/ongoing booking for the same time slot
+  const overlapping = await Booking.findOne({
+    userId: booking.userId,
+    _id: { $ne: booking._id },
+    bookingStatus: {
+      $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING],
+    },
+    fromDate: { $lt: booking.toDate },
+    toDate: { $gt: booking.fromDate },
+  });
+
+  if (overlapping) {
+    throw new ApiError(400, "You already have another confirmed booking for this time slot.");
+  }
+
   // availability check (strict)
   await validateAvailabilityStrict(
     (booking.carId as any)._id.toString(),
@@ -169,6 +191,7 @@ const createExtendBookingPaymentSession = async (
     type: TRANSACTION_TYPE.EXTEND,
     status: TRANSACTION_STATUS.INITIATED,
     extendToDate: newToDate,
+    extendedHours: extensionCalculation.extendedHours,
     charges: {
       platformFee: charges.platformFee,
       hostCommission: charges.hostCommission,

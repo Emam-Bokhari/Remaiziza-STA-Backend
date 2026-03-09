@@ -133,6 +133,7 @@ export const calculateExtendBookingAmount = async (
     platformFee: Number(platformFee.toFixed(2)),
     hostCommission: Number(hostCommission.toFixed(2)),
     adminCommission: Number(adminCommission.toFixed(2)),
+    extendedHours: totalHours,
   };
 };
 

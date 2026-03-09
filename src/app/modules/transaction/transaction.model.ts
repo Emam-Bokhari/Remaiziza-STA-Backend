@@ -60,6 +60,9 @@ const transactionSchema = new Schema(
     extendToDate: {
       type: Date,
     },
+    extendedHours: {
+      type: Number,
+    },
   },
   {
     timestamps: true,
