@@ -15,11 +15,11 @@ const userSchema = new Schema<IUser, UserModal>(
     role: {
       type: String,
       enum: Object.values(USER_ROLES),
-      required: true,
+      default: USER_ROLES.USER,
     },
     email: {
       type: String,
-      required: false,
+      required: true,
       unique: true,
       lowercase: true,
     },
@@ -47,6 +47,24 @@ const userSchema = new Schema<IUser, UserModal>(
       type: String,
       enum: Object.values(STATUS),
       default: STATUS.ACTIVE,
+    },
+    phone: {
+      type: String,
+      required: false,
+    },
+    firebaseUid: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    userName: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    deviceToken: {
+      type: String,
+      required: false,
     },
     verified: {
       type: Boolean,
@@ -88,6 +106,10 @@ const userSchema = new Schema<IUser, UserModal>(
         },
         expireAt: {
           type: Date,
+          default: null,
+        },
+        authType: {
+          type: String,
           default: null,
         },
       },

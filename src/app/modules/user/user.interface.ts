@@ -12,7 +12,9 @@ export type IUser = {
   membershipId?: string;
   phone?: string;
   status: STATUS;
-
+  firebaseUid?: string;
+  userName?: string;
+  deviceToken?: string;
   stripeConnectedAccountId?: string;
   isStripeOnboarded?: boolean;
   location?: {

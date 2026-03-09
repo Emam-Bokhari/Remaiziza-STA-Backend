@@ -20,7 +20,12 @@ export default {
   redis_db: process.env.REDIS_DB,
   start_cron: process.env.START_CRON,
   client_url: process.env.CLIENT_URL,
-
+  // google login
+  firebase: {
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+    projectId: process.env.FIREBASE_PROJECT_ID,
+  },
   // cinetpay: {
   //   CINATPAY_SITE_ID: process.env.CINATPAY_SITE_ID!,
   //   CINATPAY_API_KEY: process.env.CINATPAY_API_KEY!,

@@ -71,4 +71,11 @@ router.delete(
   AuthController.deleteUser,
 );
 
+// google login
+router.post(
+  "/google-login",
+  AuthController.googleLogin,
+);
+
+
 export const AuthRoutes = router;

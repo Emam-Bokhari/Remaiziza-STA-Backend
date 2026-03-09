@@ -140,8 +140,8 @@ export const handleExtendBookingSuccess = async (session: any) => {
   (booking as any).adminCommission =
     ((booking as any).adminCommission || 0) + extensionAdminCommission;
   booking.totalAmount = (booking.totalAmount || 0) + transaction.amount;
-  booking.extendedHours =
-    (booking.extendedHours || 0) + (transaction.extendedHours || 0);
+  // booking.extendedHours =
+  //   (booking.extendedHours || 0) + (transaction.extendedHours || 0);
 
   // Optional: store extend history
   booking.extendHistory = [

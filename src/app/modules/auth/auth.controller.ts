@@ -107,6 +107,21 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// google login
+const googleLogin = catchAsync(async (req: Request, res: Response) => {
+  const { token } = req.body;
+  const result = await AuthService.googleLoginService(token);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: StatusCodes.OK,
+    message: "User login successfully",
+    data: result,
+  });
+});
+
+
+
 export const AuthController = {
   verifyEmail,
   loginUser,
@@ -116,4 +131,5 @@ export const AuthController = {
   newAccessToken,
   resendVerificationEmail,
   deleteUser,
+  googleLogin,
 };
