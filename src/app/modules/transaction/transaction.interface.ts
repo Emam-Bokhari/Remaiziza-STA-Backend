@@ -31,5 +31,4 @@ export interface ITransaction {
     adminCommission: number;
   };
   extendToDate?: Date;
-  extendedHours?: number;
 }
