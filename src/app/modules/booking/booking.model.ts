@@ -110,6 +110,10 @@ const bookingSchema = new Schema<IBooking>(
       enum: Object.values(BOOKING_STATUS),
       default: BOOKING_STATUS.REQUESTED,
     },
+    isPaid: {
+      type: Boolean,
+      default: false,
+    },
     requestedAt: {
       type: Date,
       required: true,
@@ -157,6 +161,22 @@ const bookingSchema = new Schema<IBooking>(
         },
       ],
       default: [],
+    },
+    isExpired: {
+      type: Boolean,
+      default: false,
+    },
+    isOverlapping: {
+      type: Boolean,
+      default: false,
+    },
+    isCarAlreadyBooked: {
+      type: Boolean,
+      default: false,
+    },
+    isPayable: {
+      type: Boolean,
+      default: false,
     },
   },
   {

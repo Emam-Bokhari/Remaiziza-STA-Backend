@@ -230,3 +230,52 @@ export const validateAvailabilityStrictForApproval = async (
 
   return true;
 };
+
+export const populateBookingConflictFields = async (booking: any) => {
+  const isExpired = booking.bookingStatus === BOOKING_STATUS.EXPIRED;
+
+  let isOverlapping = false;
+  let isCarAlreadyBooked = false;
+
+  if (
+    [BOOKING_STATUS.REQUESTED, BOOKING_STATUS.PENDING].includes(
+      booking.bookingStatus,
+    )
+  ) {
+    // 1️⃣ Check if the USER has an overlapping booking elsewhere
+    const overlapping = await Booking.findOne({
+      userId: booking.userId?._id || booking.userId,
+      _id: { $ne: booking._id },
+      bookingStatus: {
+        $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING],
+      },
+      fromDate: { $lt: booking.toDate },
+      toDate: { $gt: booking.fromDate },
+    });
+    isOverlapping = !!overlapping;
+
+    // 2️⃣ Check if the CAR is already booked by SOMEONE ELSE for this slot
+    const carConflict = await Booking.findOne({
+      carId: booking.carId?._id || booking.carId,
+      _id: { $ne: booking._id },
+      bookingStatus: {
+        $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING],
+      },
+      fromDate: { $lt: booking.toDate },
+      toDate: { $gt: booking.fromDate },
+    });
+    isCarAlreadyBooked = !!carConflict;
+  }
+
+  return {
+    ...booking,
+    isExpired,
+    isOverlapping,
+    isCarAlreadyBooked,
+    isPayable:
+      booking.bookingStatus === BOOKING_STATUS.PENDING &&
+      !isExpired &&
+      !isOverlapping &&
+      !isCarAlreadyBooked,
+  };
+};

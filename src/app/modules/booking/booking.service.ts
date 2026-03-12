@@ -690,6 +690,7 @@ import { Booking } from "./booking.model";
 import {
   calculateFirstTimeBookingAmount,
   validateAvailabilityStrictForApproval,
+  populateBookingConflictFields,
 } from "./booking.utils";
 import { sendNotifications } from "../../../helpers/notificationsHelper";
 import { NOTIFICATION_TYPE } from "../notification/notification.constant";
@@ -748,6 +749,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
     ...(isSelfBooking && {
       approvedAt: new Date(),
       confirmedAt: new Date(),
+      isPaid: true,
     }),
   });
 
@@ -893,10 +895,15 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
     targetIds,
   );
 
-  const dataWithReviewStatus = data.map((b: any) => ({
-    ...b,
-    isReviewed: reviewedSet.has(b.userId?._id?.toString()),
-  }));
+  const dataWithReviewStatus = await Promise.all(
+    data.map(async (b: any) => {
+      const bookingWithConflictFields = await populateBookingConflictFields(b);
+      return {
+        ...bookingWithConflictFields,
+        isReviewed: reviewedSet.has(b.userId?._id?.toString()),
+      };
+    }),
+  );
 
   return {
     meta: {
@@ -960,35 +967,11 @@ const getUserBookingsFromDB = async (userId: string, query: any) => {
 
   const dataWithReviewStatus = await Promise.all(
     data.map(async (b: any) => {
-      const isExpired = b.bookingStatus === BOOKING_STATUS.EXPIRED;
-
-      let isOverlapping = false;
-      if (
-        [BOOKING_STATUS.REQUESTED, BOOKING_STATUS.PENDING].includes(
-          b.bookingStatus,
-        )
-      ) {
-        const overlapping = await Booking.findOne({
-          userId: b.userId,
-          _id: { $ne: b._id },
-          bookingStatus: {
-            $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING],
-          },
-          fromDate: { $lt: b.toDate },
-          toDate: { $gt: b.fromDate },
-        });
-        isOverlapping = !!overlapping;
-      }
+      const bookingWithConflictFields = await populateBookingConflictFields(b);
 
       return {
-        ...b,
+        ...bookingWithConflictFields,
         isReviewed: reviewedSet.has(b.hostId?._id?.toString()),
-        isExpired,
-        isOverlapping,
-        isPayable:
-          b.bookingStatus === BOOKING_STATUS.PENDING &&
-          !isExpired &&
-          !isOverlapping,
       };
     }),
   );
@@ -1035,7 +1018,12 @@ const getHostBookingByIdFromDB = async (bookingId: string, hostId: string) => {
     (booking.userId as any)._id.toString(),
   );
 
-  return { ...booking, isReviewed };
+  const bookingWithConflictFields = await populateBookingConflictFields(booking);
+
+  return {
+    ...bookingWithConflictFields,
+    isReviewed,
+  };
 };
 
 const getUserBookingByIdFromDB = async (bookingId: string, userId: string) => {
@@ -1064,35 +1052,11 @@ const getUserBookingByIdFromDB = async (bookingId: string, userId: string) => {
     (booking.hostId as any)._id.toString(),
   );
 
-  const isExpired = booking.bookingStatus === BOOKING_STATUS.EXPIRED;
-
-  let isOverlapping = false;
-  if (
-    [BOOKING_STATUS.REQUESTED, BOOKING_STATUS.PENDING].includes(
-      booking.bookingStatus,
-    )
-  ) {
-    const overlapping = await Booking.findOne({
-      userId: booking.userId,
-      _id: { $ne: booking._id },
-      bookingStatus: {
-        $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING],
-      },
-      fromDate: { $lt: booking.toDate },
-      toDate: { $gt: booking.fromDate },
-    });
-    isOverlapping = !!overlapping;
-  }
+  const bookingWithConflictFields = await populateBookingConflictFields(booking);
 
   return {
-    ...booking,
+    ...bookingWithConflictFields,
     isReviewed,
-    isExpired,
-    isOverlapping,
-    isPayable:
-      booking.bookingStatus === BOOKING_STATUS.PENDING &&
-      !isExpired &&
-      !isOverlapping,
   };
 };
 
@@ -1470,6 +1434,7 @@ const approveBookingByHostFromDB = async (
 
   //  Update booking status
   booking.bookingStatus = BOOKING_STATUS.CANCELLED;
+  booking.isPaid = false;
   booking.cancelledAt = new Date();
   await booking.save();
 
@@ -1598,6 +1563,12 @@ const getAllBookingsFromDB = async (query: any) => {
 
   const bookings = await Booking.aggregate(aggregationPipeline);
 
+  const bookingsWithConflictFields = await Promise.all(
+    bookings.map(async (b: any) => {
+      return await populateBookingConflictFields(b);
+    }),
+  );
+
   return {
     meta: {
       total,
@@ -1605,7 +1576,7 @@ const getAllBookingsFromDB = async (query: any) => {
       limit,
       totalPages: Math.ceil(total / limit),
     },
-    bookings,
+    bookings: bookingsWithConflictFields,
   };
 };
 
@@ -1629,7 +1600,13 @@ const getSelfBookingsByHost = async (
     .sort({ fromDate: -1 }) // latest first
     .lean();
 
-  return bookings;
+  const bookingsWithConflictFields = await Promise.all(
+    bookings.map(async (b: any) => {
+      return await populateBookingConflictFields(b);
+    }),
+  );
+
+  return bookingsWithConflictFields;
 };
 
 export const BookingServices = {

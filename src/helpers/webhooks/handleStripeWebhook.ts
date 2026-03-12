@@ -31,6 +31,7 @@ export const handleCheckoutSessionCompleted = async (session: any) => {
     {
       bookingStatus: BOOKING_STATUS.CONFIRMED,
       transactionId: transaction._id,
+      isPaid: true,
       paidAt: new Date(),
       confirmedAt: new Date(),
     },

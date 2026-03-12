@@ -15,7 +15,7 @@ import { generateMembershipId } from "../../../helpers/generateYearBasedId";
 import { Types } from "mongoose";
 import { Booking } from "../booking/booking.model";
 import { BOOKING_STATUS } from "../booking/booking.interface";
-import { TRANSACTION_STATUS } from "../transaction/transaction.interface";
+import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../transaction/transaction.interface";
 import { ReviewServices } from "../review/review.service";
 import { REVIEW_TARGET_TYPE } from "../review/review.interface";
 import { Car } from "../car/car.model";
@@ -23,6 +23,7 @@ import { getCarTripCount, getCarTripCountMap } from "../car/car.utils";
 import bcrypt from "bcrypt";
 import { sendNotifications } from "../../../helpers/notificationsHelper";
 import { NOTIFICATION_TYPE } from "../notification/notification.constant";
+import { Transaction } from "../transaction/transaction.model";
 
 // --- ADMIN SERVICES ---
 const createAdminToDB = async (payload: any): Promise<IUser> => {
@@ -138,6 +139,7 @@ const createHostToDB = async (payload: any) => {
   return createHost;
 };
 
+// host revenue
 const ghostLoginAsHost = async (superAdmin: JwtPayload, hostId: string) => {
   if (superAdmin.role !== USER_ROLES.SUPER_ADMIN) {
     throw new ApiError(403, "Unauthorized: Only SuperAdmin can use ghost mode");
@@ -171,60 +173,7 @@ const ghostLoginAsHost = async (superAdmin: JwtPayload, hostId: string) => {
   };
 };
 
-// const getAllHostFromDB = async (query: any) => {
-//   //  Fetch hosts using QueryBuilder
-//   const baseQuery = User.find({
-//     role: USER_ROLES.HOST,
-//     status: STATUS.ACTIVE,
-//     verified: true,
-//   });
-
-//   const queryBuilder = new QueryBuilder(baseQuery, query)
-//     .search(["name", "email", "membershipId"])
-//     .sort()
-//     .fields()
-//     .filter()
-//     .paginate();
-
-//   const hosts = await queryBuilder.modelQuery;
-//   const meta = await queryBuilder.countTotal();
-
-//   if (!hosts || hosts.length === 0) throw new ApiError(404, "No hosts found");
-
-//   const hostIds = hosts.map(h => h._id);
-
-//   // Aggregate hosts with full vehicle data and count
-//   const hostsWithVehicles = await User.aggregate([
-//     { $match: { _id: { $in: hostIds } } },
-//     {
-//       $lookup: {
-//         from: "cars",
-//         let: { hostId: "$_id" },
-//         pipeline: [
-//           {
-//             $match: {
-//               $expr: { $eq: ["$assignedHost", "$$hostId"] },
-//             },
-//           },
-//         ],
-//         as: "vehicles",
-//       },
-//     },
-//     {
-//       $addFields: {
-//         vehicleCount: { $size: "$vehicles" },
-//       },
-//     },
-//   ]);
-
-//   return {
-//     data: hostsWithVehicles,
-//     meta,
-//   };
-// };
-
 const getAllHostFromDB = async (query: any) => {
-  // Fetch hosts using QueryBuilder
   const baseQuery = User.find({
     role: USER_ROLES.HOST,
     status: STATUS.ACTIVE,
@@ -245,7 +194,6 @@ const getAllHostFromDB = async (query: any) => {
 
   const hostIds = hosts.map((h) => h._id);
 
-  // Aggregate hosts with vehicles
   const hostsWithVehicles = await User.aggregate([
     { $match: { _id: { $in: hostIds } } },
     {
@@ -255,7 +203,7 @@ const getAllHostFromDB = async (query: any) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$assignedHost", "$$hostId"] },
+              $expr: { $eq: ["$assignedHosts", "$$hostId"] }, // ✅ fixed: assignedHosts
             },
           },
         ],
@@ -269,15 +217,12 @@ const getAllHostFromDB = async (query: any) => {
     },
   ]);
 
-  // -------------------- Trips --------------------
-  // Collect all carIds first for bulk trip aggregation
   const allCarIds = hostsWithVehicles.flatMap((host) =>
     host.vehicles.map((v: any) => v._id),
   );
 
   const tripMap = await getCarTripCountMap(allCarIds);
 
-  // -------------------- Revenue & Attach trips --------------------
   await Promise.all(
     hostsWithVehicles.map(async (host) => {
       const vehicleIds = host.vehicles.map((v: any) => v._id);
@@ -287,42 +232,40 @@ const getAllHostFromDB = async (query: any) => {
         return acc + (tripMap[carId.toString()] || 0);
       }, 0);
 
-      // Revenue
+      // Revenue — Transaction collection, BOOKING + EXTEND, COMPLETED only
       let totalRevenue = 0;
       if (vehicleIds.length) {
-        const revenueBookings = await Booking.aggregate([
+        const revenueResult = await Transaction.aggregate([
           {
             $match: {
-              carId: { $in: vehicleIds },
-              bookingStatus: { $ne: BOOKING_STATUS.CANCELLED },
-              transactionId: { $exists: true, $ne: null },
-              isCanceledByHost: { $ne: true },
-              isCanceledByUser: { $ne: true },
+              status: TRANSACTION_STATUS.SUCCESS,
+              type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
             },
           },
           {
             $lookup: {
-              from: "transactions",
-              localField: "transactionId",
+              from: "bookings",
+              localField: "bookingId",
               foreignField: "_id",
-              as: "transaction",
+              as: "booking",
             },
           },
-          { $unwind: "$transaction" },
+          { $unwind: "$booking" },
           {
             $match: {
-              "transaction.status": "SUCCESS",
+              "booking.carId": { $in: vehicleIds },
+              "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
             },
           },
           {
             $group: {
               _id: null,
-              revenue: { $sum: "$transaction.charges.hostCommission" },
+              revenue: { $sum: "$charges.hostCommission" },
             },
           },
         ]);
 
-        totalRevenue = revenueBookings[0]?.revenue ?? 0;
+        totalRevenue = revenueResult[0]?.revenue ?? 0;
       }
 
       host.totalRevenue = totalRevenue;
@@ -334,6 +277,7 @@ const getAllHostFromDB = async (query: any) => {
     meta,
   };
 };
+// end host revenue
 
 const getHostByIdFromDB = async (id: string) => {
   const result = await User.aggregate([
@@ -350,7 +294,7 @@ const getHostByIdFromDB = async (id: string) => {
         pipeline: [
           {
             $match: {
-              $expr: { $eq: ["$$hostId", "$assignedHosts"] }, // single host
+              $expr: { $eq: ["$$hostId", "$assignedHosts"] }, // ✅ assignedHosts
             },
           },
           { $project: { assignedHosts: 0 } },
@@ -377,46 +321,42 @@ const getHostByIdFromDB = async (id: string) => {
     totalTrips += await getCarTripCount(carId);
   }
 
-  // -------------------- Revenue --------------------
-  // -------------------- Revenue (safe calculation) --------------------
+  // -------------------- Revenue — Transaction collection, BOOKING + EXTEND, COMPLETED only --------------------
   let totalRevenue = 0;
-
   if (vehicleIds.length) {
-    const revenueBookings = await Booking.aggregate([
+    const revenueResult = await Transaction.aggregate([
       {
         $match: {
-          carId: { $in: vehicleIds },
-          bookingStatus: { $ne: BOOKING_STATUS.CANCELLED },
-          transactionId: { $exists: true, $ne: null },
-          isCanceledByHost: { $ne: true },
-          isCanceledByUser: { $ne: true },
+          status: TRANSACTION_STATUS.SUCCESS,
+          type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
         },
       },
       {
         $lookup: {
-          from: "transactions",
-          localField: "transactionId",
+          from: "bookings",
+          localField: "bookingId",
           foreignField: "_id",
-          as: "transaction",
+          as: "booking",
         },
       },
-      { $unwind: "$transaction" },
+      { $unwind: "$booking" },
       {
         $match: {
-          "transaction.status": TRANSACTION_STATUS.SUCCESS,
+          "booking.carId": { $in: vehicleIds },
+          "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
         },
       },
       {
         $group: {
           _id: null,
-          revenue: { $sum: "$transaction.charges.hostCommission" },
+          revenue: { $sum: "$charges.hostCommission" },
         },
       },
     ]);
 
-    totalRevenue = revenueBookings[0]?.revenue ?? 0;
+    totalRevenue = revenueResult[0]?.revenue ?? 0;
   }
-  // Attach trips and revenue
+
   host.totalTrips = totalTrips;
   host.totalRevenue = totalRevenue;
 
@@ -563,16 +503,6 @@ const createUserToDB = async (payload: any) => {
   return result;
 };
 
-// const getUserProfileFromDB = async (
-//   user: JwtPayload,
-// ): Promise<Partial<IUser>> => {
-//   const { id } = user;
-//   const isExistUser: any = await User.isExistUserById(id);
-//   if (!isExistUser) {
-//     throw new ApiError(StatusCodes.BAD_REQUEST, "User doesn't exist!");
-//   }
-//   return isExistUser;
-// };
 
 const getUserProfileFromDB = async (user: JwtPayload): Promise<any> => {
   const { id } = user;

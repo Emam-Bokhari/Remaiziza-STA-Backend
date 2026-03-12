@@ -37,6 +37,7 @@ export interface IBooking {
   adminCommission: number;
   totalAmount: number;
   bookingStatus: BOOKING_STATUS;
+  isPaid?: boolean;
   requestedAt: Date;
   approvedAt?: Date;
   paidAt?: Date;
@@ -52,4 +53,8 @@ export interface IBooking {
     transactionId: Types.ObjectId;
     extendedAt: Date;
   }[];
+  isExpired?: boolean;
+  isOverlapping?: boolean;
+  isCarAlreadyBooked?: boolean;
+  isPayable?: boolean;
 }
