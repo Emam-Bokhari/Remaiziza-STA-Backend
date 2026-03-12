@@ -108,17 +108,7 @@ const cancelBooking = catchAsync(async (req, res) => {
   });
 });
 
-// const confirmBookingAfterPayment = catchAsync(async (req, res) => {
-//     const { id: userId } = req.user as { id: string };
-//     const { bookingId } = req.params;
-//     const result = await BookingServices.confirmBookingAfterPaymentFromDB(bookingId, userId);
-//     sendResponse(res, {
-//         statusCode: 200,
-//         success: true,
-//         message: "Booking confirmed successfully",
-//         data: result,
-//     });
-// })
+
 
 const getAllBookings = catchAsync(async (req, res) => {
   const result = await BookingServices.getAllBookingsFromDB(req.query);
@@ -130,6 +120,19 @@ const getAllBookings = catchAsync(async (req, res) => {
     meta: result.meta,
   });
 });
+
+const getSingleBookingById = catchAsync(async (req, res) => {
+  const { bookingId } = req.params;
+  const result = await BookingServices.getSingleBookingByIdFromDB(bookingId);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Booking fetched successfully by id",
+    data: result,
+  });
+});
+
+
 
 const getSelfBookingsByHost = catchAsync(async (req, res) => {
   const { id: hostId } = req.user as { id: string };
@@ -161,7 +164,7 @@ export const BookingControllers = {
   getUserBookingById,
   approveBookingByHost,
   cancelBooking,
-  // confirmBookingAfterPayment,
+  getSingleBookingById,
   getAllBookings,
   getSelfBookingsByHost,
   paymentSuccess,
