@@ -128,6 +128,104 @@ export const getCarTripCount = async (
   return count;
 };
 
+export const getCarCalendarOptimized = async (carId: string) => {
+  const car = await Car.findById(carId)
+    .select("availableDays blockedDates availableHours defaultStartTime defaultEndTime")
+    .lean();
+
+  if (!car) {
+    throw new ApiError(404, "Car not found for calendar generation");
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const endDate = new Date(today);
+  endDate.setDate(today.getDate() + 30);
+
+  // Fetch all conflicting bookings in one go
+  const bookings = await Booking.find({
+    carId: new Types.ObjectId(carId),
+    bookingStatus: { $in: [BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING] },
+    fromDate: { $lt: endDate },
+    toDate: { $gt: today },
+  }).select("fromDate toDate");
+
+  const calendar = [];
+  const openHoursSet = new Set<number>();
+
+  if (car.availableHours?.length) {
+    car.availableHours.forEach((t: string) => {
+      const h = parseInt(t.split(":")[0], 10);
+      if (!isNaN(h)) openHoursSet.add(h);
+    });
+  } else if (car.defaultStartTime && car.defaultEndTime) {
+    const start = parseInt(car.defaultStartTime.split(":")[0], 10);
+    const end = parseInt(car.defaultEndTime.split(":")[0], 10) || 24;
+    for (let h = start; h < end; h++) openHoursSet.add(h % 24);
+  } else {
+    for (let i = 0; i < 24; i++) openHoursSet.add(i);
+  }
+
+  for (let i = 0; i < 30; i++) {
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + i);
+    const { dateStr: dateString } = getLocalDetails(targetDate);
+    const dayName = targetDate.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+
+    let available = true;
+    let reason = "";
+
+    // 1. Check availableDays
+    if (car.availableDays?.length && !car.availableDays.includes(dayName as AVAILABLE_DAYS)) {
+      available = false;
+      reason = "Not an available day";
+    }
+
+    // 2. Check blockedDates
+    const blockedEntry = car.blockedDates?.find(
+      (b: any) => getLocalDetails(new Date(b.date)).dateStr === dateString,
+    );
+    if (blockedEntry) {
+      available = false;
+      reason = blockedEntry.reason || "Blocked by host";
+    }
+
+    // 3. Check booking conflicts if still available
+    if (available) {
+      const bookedHoursForDate = new Set<number>();
+      bookings.forEach(booking => {
+        const from = new Date(booking.fromDate);
+        const to = new Date(booking.toDate);
+        const cursor = new Date(from);
+
+        while (cursor < to) {
+          if (getLocalDetails(cursor).dateStr === dateString) {
+            bookedHoursForDate.add(cursor.getHours());
+          }
+          cursor.setTime(cursor.getTime() + 60 * 60 * 1000);
+        }
+      });
+
+      const availableSlotsForDate = Array.from(openHoursSet).filter(
+        hour => !bookedHoursForDate.has(hour)
+      );
+
+      if (availableSlotsForDate.length === 0) {
+        available = false;
+        reason = "Fully Booked";
+      }
+    }
+
+    calendar.push({
+      date: dateString,
+      available,
+      reason,
+    });
+  }
+
+  return calendar;
+};
+
 // bulk car trip
 export const getCarTripCountMap = async (
   carIds: Types.ObjectId[],

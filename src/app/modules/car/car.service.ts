@@ -85,6 +85,7 @@ const getAllCarsFromDB = async (query: any) => {
 };
 
 const getCarByIdFromDB = async (id: string) => {
+  console.log(id,"ID")
   const result = await Car.findById(id);
   if (!result) {
     throw new ApiError(404, "Car not found");
@@ -900,6 +901,8 @@ const getNearbyCarsFromDB = async (params: any) => {
   };
 };
 
+import { getCarCalendarOptimized } from "./car.utils";
+
 const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   const car = await Car.findById(id).populate("assignedHosts");
 
@@ -907,49 +910,95 @@ const getCarByIdForUserFromDB = async (id: string, userId: string) => {
     return null;
   }
 
-  // Favorite check
-  const isBookmarked = await FavoriteCar.exists({
+  const now = new Date();
+
+  // --- Run database queries in parallel for performance ---
+  const isBookmarkedPromise = FavoriteCar.exists({
     userId,
     referenceId: id,
   });
 
-  const now = new Date();
-  const isAvailable = await checkCarAvailabilityByDate(car, now);
-  const availabilityCalendar = await getCarCalendar(id);
-  const trips = await getCarTripCount(id);
+  const availabilityCalendarPromise = getCarCalendarOptimized(id);
+  const tripsPromise = getCarTripCount(id);
+  const hasUserPaidPromise = checkIfUserHasPaid(id, userId);
 
-  // HOST review (safe handling)
-  let reviewSummary: IReviewSummary = {
-    averageRating: 0,
-    totalReviews: 0,
-    starCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
-    reviews: [],
-  };
+  let reviewSummaryPromise;
+  let hostBookingStatsPromise;
+
+  if (car.assignedHosts) {
+    const hostId = car.assignedHosts._id;
+    reviewSummaryPromise = ReviewServices.getReviewSummary(
+      hostId.toString(),
+      REVIEW_TARGET_TYPE.HOST,
+    );
+
+    // Optimized booking stats query: one query instead of two
+    hostBookingStatsPromise = Booking.aggregate([
+      { $match: { hostId } },
+      {
+        $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          completedBookings: {
+            $sum: {
+              $cond: [
+                { $in: ["$bookingStatus", [BOOKING_STATUS.COMPLETED]] },
+                1,
+                0,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+  } else {
+    // If no host, resolve promises with default values
+    reviewSummaryPromise = Promise.resolve({
+      averageRating: 0,
+      totalReviews: 0,
+      starCounts: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      reviews: [],
+    });
+    hostBookingStatsPromise = Promise.resolve([]);
+  }
+
+  // Await all promises together
+  const [
+    isBookmarked,
+    availabilityCalendar,
+    trips,
+    hasUserPaid,
+    reviewSummary,
+    hostBookingStatsResult,
+  ] = await Promise.all([
+    isBookmarkedPromise,
+    availabilityCalendarPromise,
+    tripsPromise,
+    hasUserPaidPromise,
+    reviewSummaryPromise,
+    hostBookingStatsPromise,
+  ]);
 
   let totalBookings = 0;
   let successRate = 0;
 
-  if (car.assignedHosts) {
-    reviewSummary = await ReviewServices.getReviewSummary(
-      car.assignedHosts._id.toString(),
-      REVIEW_TARGET_TYPE.HOST,
-    );
-
-    totalBookings = await Booking.countDocuments({
-      hostId: car.assignedHosts._id,
-    });
-    const completedBookings = await Booking.countDocuments({
-      hostId: car.assignedHosts._id,
-      bookingStatus: { $in: [BOOKING_STATUS.COMPLETED] },
-    });
+  // Safely process aggregation result
+  if (
+    Array.isArray(hostBookingStatsResult) &&
+    hostBookingStatsResult.length > 0
+  ) {
+    const hostBookingStats = hostBookingStatsResult[0];
+    totalBookings = hostBookingStats.totalBookings || 0;
+    const completedBookings = hostBookingStats.completedBookings || 0;
     successRate =
       totalBookings > 0
         ? Math.round((completedBookings / totalBookings) * 100)
         : 0;
   }
 
-  //  Check if this user has a successful payment for this car
-  const hasUserPaid = await checkIfUserHasPaid(id, userId);
+  // The `isAvailable` check is now implicitly handled by the calendar.
+  // We can derive it from the first day's availability.
+  const isAvailable = availabilityCalendar[0]?.available || false;
 
   return {
     ...car.toObject(),
@@ -971,7 +1020,7 @@ const getCarsByHostFromDB = async (hostId: string) => {
   if (!hostId || !Types.ObjectId.isValid(hostId)) {
     throw new ApiError(400, "Invalid hostId");
   }
-
+  
   const objectHostId = new Types.ObjectId(hostId);
 
   // Single car fetch

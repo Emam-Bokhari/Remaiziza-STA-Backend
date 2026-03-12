@@ -233,42 +233,37 @@ const getAllHostFromDB = async (query: any) => {
       }, 0);
 
       // Revenue — Transaction collection, BOOKING + EXTEND, COMPLETED only
-      let totalRevenue = 0;
-      if (vehicleIds.length) {
-        const revenueResult = await Transaction.aggregate([
-          {
-            $match: {
-              status: TRANSACTION_STATUS.SUCCESS,
-              type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
-            },
+      const revenueResult = await Transaction.aggregate([
+        {
+          $match: {
+            status: TRANSACTION_STATUS.SUCCESS,
+            type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
           },
-          {
-            $lookup: {
-              from: "bookings",
-              localField: "bookingId",
-              foreignField: "_id",
-              as: "booking",
-            },
+        },
+        {
+          $lookup: {
+            from: "bookings",
+            localField: "bookingId",
+            foreignField: "_id",
+            as: "booking",
           },
-          { $unwind: "$booking" },
-          {
-            $match: {
-              "booking.carId": { $in: vehicleIds },
-              "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
-            },
+        },
+        { $unwind: "$booking" },
+        {
+          $match: {
+            "booking.hostId": host._id, // Use host's ID for accuracy
+            "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
           },
-          {
-            $group: {
-              _id: null,
-              revenue: { $sum: "$charges.hostCommission" },
-            },
+        },
+        {
+          $group: {
+            _id: null,
+            revenue: { $sum: "$charges.hostCommission" },
           },
-        ]);
+        },
+      ]);
 
-        totalRevenue = revenueResult[0]?.revenue ?? 0;
-      }
-
-      host.totalRevenue = totalRevenue;
+      host.totalRevenue = revenueResult[0]?.revenue ?? 0;
     }),
   );
 
@@ -314,51 +309,47 @@ const getHostByIdFromDB = async (id: string) => {
 
   const host = result[0];
 
-  // -------------------- Trips --------------------
-  let totalTrips = 0;
   const vehicleIds = host.vehicles.map((v: any) => v._id);
-  for (const carId of vehicleIds) {
-    totalTrips += await getCarTripCount(carId);
-  }
 
-  // -------------------- Revenue — Transaction collection, BOOKING + EXTEND, COMPLETED only --------------------
-  let totalRevenue = 0;
-  if (vehicleIds.length) {
-    const revenueResult = await Transaction.aggregate([
-      {
-        $match: {
-          status: TRANSACTION_STATUS.SUCCESS,
-          type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
-        },
-      },
-      {
-        $lookup: {
-          from: "bookings",
-          localField: "bookingId",
-          foreignField: "_id",
-          as: "booking",
-        },
-      },
-      { $unwind: "$booking" },
-      {
-        $match: {
-          "booking.carId": { $in: vehicleIds },
-          "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          revenue: { $sum: "$charges.hostCommission" },
-        },
-      },
-    ]);
+  // -------------------- Trips --------------------
+  const tripMap = await getCarTripCountMap(vehicleIds);
+  const totalTrips = vehicleIds.reduce((acc: number, carId: any) => {
+    return acc + (tripMap[carId.toString()] || 0);
+  }, 0);
 
-    totalRevenue = revenueResult[0]?.revenue ?? 0;
-  }
+  // -------------------- Revenue --------------------
+  const revenueResult = await Transaction.aggregate([
+    {
+      $match: {
+        status: TRANSACTION_STATUS.SUCCESS,
+        type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
+      },
+    },
+    {
+      $lookup: {
+        from: "bookings",
+        localField: "bookingId",
+        foreignField: "_id",
+        as: "booking",
+      },
+    },
+    { $unwind: "$booking" },
+    {
+      $match: {
+        "booking.hostId": host._id, // Use host's ID for accuracy
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        revenue: { $sum: "$charges.hostCommission" },
+      },
+    },
+  ]);
 
   host.totalTrips = totalTrips;
-  host.totalRevenue = totalRevenue;
+  host.totalRevenue = revenueResult[0]?.revenue ?? 0;
 
   return host;
 };
@@ -620,7 +611,6 @@ const getAllUsersFromDB = async (query: any) => {
   // Base user query
   const baseQuery = User.find({
     role: USER_ROLES.USER,
-    status: STATUS.ACTIVE,
     verified: true,
   });
 
