@@ -626,7 +626,7 @@ const approveBookingByHostFromDB = async (
 
 
 const getAllBookingsFromDB = async (query: any) => {
-  const searchTerm = query.search?.toLowerCase() || "";
+  const searchTerm = (query.search || query.searchTerm || "").toString().trim();
   const page = parseInt(query.page || "1", 10);
   const limit = parseInt(query.limit || "10", 10);
   const skip = (page - 1) * limit;
@@ -684,14 +684,15 @@ const getAllBookingsFromDB = async (query: any) => {
     });
   }
 
-  // Booking status filter
+  // Booking status filter (Check both status and bookingStatus)
+  const bookingStatus = query.status || query.bookingStatus;
   if (
-    query.bookingStatus &&
-    Object.values(BOOKING_STATUS).includes(query.bookingStatus)
+    bookingStatus &&
+    Object.values(BOOKING_STATUS).includes(bookingStatus.toUpperCase())
   ) {
     aggregationPipeline.push({
       $match: {
-        bookingStatus: query.bookingStatus,
+        bookingStatus: bookingStatus.toUpperCase(),
       },
     });
   }

@@ -6,6 +6,4 @@ export type TSupport = {
   email: string;
   subject: string;
   message: string;
-  isDeleted: boolean;
-  deletedAt?: Date | null;
 };
