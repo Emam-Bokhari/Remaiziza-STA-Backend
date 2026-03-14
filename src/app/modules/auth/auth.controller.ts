@@ -109,13 +109,13 @@ const deleteUser = catchAsync(async (req: Request, res: Response) => {
 
 // google login
 const googleLogin = catchAsync(async (req: Request, res: Response) => {
-  const { token,deviceToken } = req.body;
+  const { token, deviceToken } = req.body;
 
-  const data={
+  const data = {
     token,
     deviceToken,
-  }
-  console.log(token,deviceToken,"controller token")
+  };
+  console.log(token, deviceToken, "controller token");
   const result = await AuthService.googleLoginService(data);
 
   sendResponse(res, {
@@ -125,8 +125,6 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
-
 
 export const AuthController = {
   verifyEmail,

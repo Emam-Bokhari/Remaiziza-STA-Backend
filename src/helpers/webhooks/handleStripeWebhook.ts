@@ -51,6 +51,7 @@ export const handleCheckoutSessionCompleted = async (session: any) => {
       receiver: booking.userId.toString(),
       type: NOTIFICATION_TYPE.USER,
       referenceId: booking._id.toString(),
+      referenceModel: "Booking",
     });
 
     await sendNotifications({
@@ -58,6 +59,7 @@ export const handleCheckoutSessionCompleted = async (session: any) => {
       receiver: booking.hostId.toString(),
       type: NOTIFICATION_TYPE.HOST,
       referenceId: booking._id.toString(),
+      referenceModel: "Booking",
     });
 
     const admin = await User.findOne({
@@ -69,6 +71,7 @@ export const handleCheckoutSessionCompleted = async (session: any) => {
         receiver: admin._id.toString(),
         type: NOTIFICATION_TYPE.ADMIN,
         referenceId: booking._id.toString(),
+        referenceModel: "Booking",
       });
     }
   }

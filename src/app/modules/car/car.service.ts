@@ -85,7 +85,7 @@ const getAllCarsFromDB = async (query: any) => {
 };
 
 const getCarByIdFromDB = async (id: string) => {
-  console.log(id,"ID")
+  console.log(id, "ID");
   const result = await Car.findById(id);
   if (!result) {
     throw new ApiError(404, "Car not found");
@@ -225,6 +225,7 @@ const updateCarByIdToDB = async (
       receiver: admin._id.toString(),
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: updated._id.toString(),
+      referenceModel: "Car",
     });
   }
 
@@ -251,6 +252,7 @@ const deleteCarByIdFromDB = async (id: string) => {
       receiver: admin._id.toString(),
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: result._id.toString(),
+      referenceModel: "Car",
     });
   }
 
@@ -1020,7 +1022,7 @@ const getCarsByHostFromDB = async (hostId: string) => {
   if (!hostId || !Types.ObjectId.isValid(hostId)) {
     throw new ApiError(400, "Invalid hostId");
   }
-  
+
   const objectHostId = new Types.ObjectId(hostId);
 
   // Single car fetch

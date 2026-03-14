@@ -33,6 +33,7 @@ router
 router.post(
   "/create-admin",
   requireSuperAdmin,
+
   validateRequest(UserValidation.createAdminZodSchema),
   UserController.createAdmin,
 );

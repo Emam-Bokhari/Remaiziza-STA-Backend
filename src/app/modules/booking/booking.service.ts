@@ -28,7 +28,10 @@ const createBookingToDB = async (payload: any, userId: string) => {
   const diffHours = diffMs / (1000 * 60 * 60);
 
   if (diffHours < 24) {
-    throw new ApiError(400, "Minimum booking duration must be 24 hours (1 day)");
+    throw new ApiError(
+      400,
+      "Minimum booking duration must be 24 hours (1 day)",
+    );
   }
 
   await validateAvailabilityStrict(
@@ -108,15 +111,17 @@ const createBookingToDB = async (payload: any, userId: string) => {
       uniqueReceivers.set(r.receiver, r);
     }
   }
-
+  
   // 4️⃣ Send notifications
   await Promise.all(
     Array.from(uniqueReceivers.values()).map((r) =>
       sendNotifications({
         text: notificationText,
         receiver: r.receiver,
+        sender: userId,
         type: r.type,
         referenceId: result._id.toString(),
+        referenceModel: "Booking",
       }),
     ),
   );
@@ -128,7 +133,7 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
   if (!Types.ObjectId.isValid(hostId)) {
     throw new ApiError(400, "Invalid host id");
   }
-  console.log(hostId,"HOST ID")
+  console.log(hostId, "HOST ID");
 
   const { status, page = 1, limit = 20 } = query;
   const skip = (Number(page) - 1) * Number(limit);
@@ -139,7 +144,7 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
     hostId: new Types.ObjectId(hostId),
   };
 
-  console.log(status,"STATUS")
+  console.log(status, "STATUS");
 
   // 2️⃣ Status Filter
   if (status) {
@@ -150,7 +155,7 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
         Object.values(BOOKING_STATUS).includes(s as BOOKING_STATUS),
       );
 
-      console.log(statuses,"STATUSES")
+    console.log(statuses, "STATUSES");
 
     if (!statuses.length) {
       throw new ApiError(400, "Invalid booking status filter");
@@ -160,9 +165,7 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
   }
 
   // 3️⃣ Expiry & Overlapping Logic for REQUESTED and PENDING bookings (Removed hiding logic)
-  const pipeline: any[] = [
-    { $match: match },
-  ];
+  const pipeline: any[] = [{ $match: match }];
 
   // 4️⃣ Final Aggregation with Pagination and Populate
   const [result] = await Booking.aggregate([
@@ -340,7 +343,8 @@ const getHostBookingByIdFromDB = async (bookingId: string, hostId: string) => {
     (booking.userId as any)._id.toString(),
   );
 
-  const bookingWithConflictFields = await populateBookingConflictFields(booking);
+  const bookingWithConflictFields =
+    await populateBookingConflictFields(booking);
 
   return {
     ...bookingWithConflictFields,
@@ -374,7 +378,8 @@ const getUserBookingByIdFromDB = async (bookingId: string, userId: string) => {
     (booking.hostId as any)._id.toString(),
   );
 
-  const bookingWithConflictFields = await populateBookingConflictFields(booking);
+  const bookingWithConflictFields =
+    await populateBookingConflictFields(booking);
 
   return {
     ...bookingWithConflictFields,
@@ -443,15 +448,19 @@ const approveBookingByHostFromDB = async (
   await sendNotifications({
     text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
     receiver: booking.userId.toString(),
+    sender: hostId,
     type: NOTIFICATION_TYPE.USER,
     referenceId: booking._id.toString(),
+    referenceModel: "Booking",
   });
 
   await sendNotifications({
     text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
     receiver: booking.hostId.toString(),
+    sender: hostId,
     type: NOTIFICATION_TYPE.HOST,
     referenceId: booking._id.toString(),
+    referenceModel: "Booking",
   });
 
   const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select(
@@ -461,16 +470,17 @@ const approveBookingByHostFromDB = async (
     await sendNotifications({
       text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
       receiver: admin._id.toString(),
+      sender: hostId,
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: booking._id.toString(),
+      referenceModel: "Booking",
     });
   }
 
   return booking;
 };
 
-
- const cancelBookingFromDB = async (
+const cancelBookingFromDB = async (
   bookingId: string,
   actorId: string,
   actorRole: USER_ROLES,
@@ -522,7 +532,9 @@ const approveBookingByHostFromDB = async (
     const fromDate = new Date(booking.fromDate);
     const toDate = new Date(booking.toDate);
     const totalDays =
-      Math.ceil((toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+      Math.ceil(
+        (toDate.getTime() - fromDate.getTime()) / (1000 * 60 * 60 * 24),
+      ) || 1;
 
     const paidAmount = transaction.amount;
     const rentalPrice = (booking as any).rentalPrice;
@@ -563,18 +575,24 @@ const approveBookingByHostFromDB = async (
       await sendNotifications({
         text: `Refund of ${refundAmount} processed for booking ${booking.bookingId}`,
         receiver: booking.userId.toString(),
+        sender: actorId,
         type: NOTIFICATION_TYPE.USER,
         referenceId: booking._id.toString(),
+        referenceModel: "Booking",
       });
 
       // Notification: Admin
-      const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select("_id");
+      const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select(
+        "_id",
+      );
       if (admin) {
         await sendNotifications({
           text: `Refund of ${refundAmount} processed for booking ${booking.bookingId}`,
           receiver: admin._id.toString(),
+          sender: actorId,
           type: NOTIFICATION_TYPE.ADMIN,
           referenceId: booking._id.toString(),
+          referenceModel: "Booking",
         });
       }
     }
@@ -600,30 +618,37 @@ const approveBookingByHostFromDB = async (
   await sendNotifications({
     text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
     receiver: booking.userId.toString(),
+    sender: actorId,
     type: NOTIFICATION_TYPE.USER,
     referenceId: booking._id.toString(),
+    referenceModel: "Booking",
   });
 
   await sendNotifications({
     text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
     receiver: booking.hostId.toString(),
+    sender: actorId,
     type: NOTIFICATION_TYPE.HOST,
     referenceId: booking._id.toString(),
+    referenceModel: "Booking",
   });
 
-  const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select("_id");
+  const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select(
+    "_id",
+  );
   if (admin) {
     await sendNotifications({
       text: `Booking ${booking.bookingId} status is ${booking.bookingStatus}`,
       receiver: admin._id.toString(),
+      sender: actorId,
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: booking._id.toString(),
+      referenceModel: "Booking",
     });
   }
 
   return booking;
 };
-
 
 const getAllBookingsFromDB = async (query: any) => {
   const searchTerm = (query.search || query.searchTerm || "").toString().trim();
@@ -728,7 +753,7 @@ const getAllBookingsFromDB = async (query: any) => {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPage: Math.ceil(total / limit),
     },
     bookings: bookingsWithConflictFields,
   };

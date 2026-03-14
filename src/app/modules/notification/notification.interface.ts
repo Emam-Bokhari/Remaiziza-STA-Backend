@@ -5,7 +5,8 @@ export type INotification = {
   receiver?: Types.ObjectId;
   sender?: Types.ObjectId;
   read: boolean;
-  referenceId?: string;
+  referenceId?: Types.ObjectId;
+  referenceModel?: "Booking" | "Car" | "Review" | "User";
   type?: string;
 };
 

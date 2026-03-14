@@ -348,85 +348,85 @@ const deleteUserFromDB = async (user: JwtPayload, password: string) => {
   return;
 };
 
-
 const googleLoginService = async (payload: {
-  token: string,
-  deviceToken?: string,
+  token: string;
+  deviceToken?: string;
 }) => {
-  const { token, deviceToken } = payload
+  const { token, deviceToken } = payload;
 
-  console.log(token,deviceToken,"Token and device token")
+  console.log(token, deviceToken, "Token and device token");
 
   if (!token) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Firebase ID token is required')
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Firebase ID token is required",
+    );
   }
 
-  let decoded
+  let decoded;
   try {
-    decoded = await firebaseAdmin.auth().verifyIdToken(token)
+    decoded = await firebaseAdmin.auth().verifyIdToken(token);
   } catch (error) {
     throw new ApiError(
       StatusCodes.UNAUTHORIZED,
-      'Invalid or expired Firebase token',
-    )
+      "Invalid or expired Firebase token",
+    );
   }
 
-  const { uid: firebaseUid, email, name, picture, email_verified } = decoded
+  const { uid: firebaseUid, email, name, picture, email_verified } = decoded;
 
   // Email must exist for Google login
   if (!email) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      'Email not found in Google account',
-    )
+      "Email not found in Google account",
+    );
   }
 
   // Optionally enforce email verification
   if (!email_verified) {
     throw new ApiError(
       StatusCodes.FORBIDDEN,
-      'Please verify your email address with Google',
-    )
+      "Please verify your email address with Google",
+    );
   }
 
   // Check if user exists
   let user = await User.findOne({
     firebaseUid,
-  })
+  });
 
   if (user) {
     // Check user status
-    if (
-      user.status === STATUS.INACTIVE
-    ) {
+    if (user.status === STATUS.INACTIVE) {
       throw new ApiError(
         StatusCodes.FORBIDDEN,
-        'Your account has been blocked. Please contact support.',
-      )
+        "Your account has been blocked. Please contact support.",
+      );
     }
 
     // Update user info if changed
     if (user.email !== email || user.profileImage !== picture) {
-      user.email = email
-      user.profileImage = picture || user.profileImage
-      user.verified = email_verified
-      await user.save()
+      user.email = email;
+      user.profileImage = picture || user.profileImage;
+      user.verified = email_verified;
+      await user.save();
     }
   } else {
-    const [firstName, ...rest] = (name || '').trim().split(' ')
-    const lastName = rest.join(' ')
+    const [firstName, ...rest] = (name || "").trim().split(" ");
+    const lastName = rest.join(" ");
 
     // create full name
-    const fullName = [firstName, lastName].filter(Boolean).join(' ')
+    const fullName = [firstName, lastName].filter(Boolean).join(" ");
 
     // Generate unique username
-    const baseUsername = email.split('@')[0]
-    let userName = baseUsername
-    let counter = 1
+    const baseUsername = email.split("@")[0];
+    let userName = baseUsername;
+    let counter = 1;
 
     while (await User.findOne({ userName })) {
-      userName = `${baseUsername}${counter}`
-      counter++
+      userName = `${baseUsername}${counter}`;
+      counter++;
     }
 
     user = await User.create({
@@ -438,7 +438,7 @@ const googleLoginService = async (payload: {
       verified: email_verified,
       status: STATUS.ACTIVE,
       deviceToken,
-    })
+    });
   }
 
   // create token
@@ -451,10 +451,8 @@ const googleLoginService = async (payload: {
   return {
     token: createToken,
     user,
-  }
-}
-
-
+  };
+};
 
 export const AuthService = {
   loginUserFromDB,

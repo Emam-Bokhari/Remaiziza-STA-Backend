@@ -16,7 +16,7 @@ const seedSuperAdmin = async () => {
   const isExistSuperAdmin = await User.findOne({
     role: USER_ROLES.SUPER_ADMIN,
   });
-
+    
   if (!isExistSuperAdmin) {
     await User.create(superUser);
     logger.info(colors.green("✔ Super admin created successfully!"));

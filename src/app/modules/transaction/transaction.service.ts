@@ -28,7 +28,10 @@ const createBookingPaymentSession = async (
   //  expired check
   const now = new Date();
   const approvedAt = booking.approvedAt;
-  if (approvedAt && now.getTime() - approvedAt.getTime() > 24 * 60 * 60 * 1000) {
+  if (
+    approvedAt &&
+    now.getTime() - approvedAt.getTime() > 24 * 60 * 60 * 1000
+  ) {
     throw new Error("Booking has expired");
   }
 
@@ -108,8 +111,6 @@ const createBookingPaymentSession = async (
     success_url: `https://api.gogreenmatrix.my/api/v1/bookings/success`,
     cancel_url: `https://api.gogreenmatrix.my/api/v1/bookings/fail`,
   });
-
-  console.log();
 
   transaction.stripeSessionId = session.id;
   await transaction.save();

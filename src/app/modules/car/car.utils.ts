@@ -130,7 +130,9 @@ export const getCarTripCount = async (
 
 export const getCarCalendarOptimized = async (carId: string) => {
   const car = await Car.findById(carId)
-    .select("availableDays blockedDates availableHours defaultStartTime defaultEndTime")
+    .select(
+      "availableDays blockedDates availableHours defaultStartTime defaultEndTime",
+    )
     .lean();
 
   if (!car) {
@@ -170,13 +172,18 @@ export const getCarCalendarOptimized = async (carId: string) => {
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + i);
     const { dateStr: dateString } = getLocalDetails(targetDate);
-    const dayName = targetDate.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
+    const dayName = targetDate
+      .toLocaleDateString("en-US", { weekday: "long" })
+      .toUpperCase();
 
     let available = true;
     let reason = "";
 
     // 1. Check availableDays
-    if (car.availableDays?.length && !car.availableDays.includes(dayName as AVAILABLE_DAYS)) {
+    if (
+      car.availableDays?.length &&
+      !car.availableDays.includes(dayName as AVAILABLE_DAYS)
+    ) {
       available = false;
       reason = "Not an available day";
     }
@@ -193,7 +200,7 @@ export const getCarCalendarOptimized = async (carId: string) => {
     // 3. Check booking conflicts if still available
     if (available) {
       const bookedHoursForDate = new Set<number>();
-      bookings.forEach(booking => {
+      bookings.forEach((booking) => {
         const from = new Date(booking.fromDate);
         const to = new Date(booking.toDate);
         const cursor = new Date(from);
@@ -207,7 +214,7 @@ export const getCarCalendarOptimized = async (carId: string) => {
       });
 
       const availableSlotsForDate = Array.from(openHoursSet).filter(
-        hour => !bookedHoursForDate.has(hour)
+        (hour) => !bookedHoursForDate.has(hour),
       );
 
       if (availableSlotsForDate.length === 0) {
@@ -454,6 +461,7 @@ export const notifyAdminCarAction = async (
     receiver: admin._id.toString(),
     type: NOTIFICATION_TYPE.ADMIN,
     referenceId: carId,
+    referenceModel: "Car",
   });
 };
 

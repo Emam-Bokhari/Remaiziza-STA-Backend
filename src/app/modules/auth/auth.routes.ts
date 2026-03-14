@@ -72,10 +72,6 @@ router.delete(
 );
 
 // google login
-router.post(
-  "/google-login",
-  AuthController.googleLogin,
-);
-
+router.post("/google-login", AuthController.googleLogin);
 
 export const AuthRoutes = router;

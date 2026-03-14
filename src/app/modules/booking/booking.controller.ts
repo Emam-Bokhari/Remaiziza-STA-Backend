@@ -108,8 +108,6 @@ const cancelBooking = catchAsync(async (req, res) => {
   });
 });
 
-
-
 const getAllBookings = catchAsync(async (req, res) => {
   const result = await BookingServices.getAllBookingsFromDB(req.query);
   sendResponse(res, {
@@ -131,8 +129,6 @@ const getSingleBookingById = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-
 
 const getSelfBookingsByHost = catchAsync(async (req, res) => {
   const { id: hostId } = req.user as { id: string };

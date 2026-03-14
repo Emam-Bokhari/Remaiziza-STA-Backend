@@ -8,7 +8,11 @@ import { NOTIFICATION_TYPE } from "./notification.constant";
 const getNotificationFromDB = async (
   user: JwtPayload,
 ): Promise<INotification> => {
-  const result = await Notification.find({ receiver: user.id });
+  const result = await Notification.find({ receiver: user.id })
+    .populate("receiver sender referenceId")
+    .sort({
+      createdAt: -1,
+    });
 
   const unreadCount = await Notification.countDocuments({
     receiver: user.id,
@@ -34,9 +38,21 @@ const readNotificationToDB = async (
   return result;
 };
 
+// get recent activities (last 5)
+const getRecentActivitiesFromDB = async (
+  user: JwtPayload,
+) => {
+  const result = await Notification.find({ receiver: user.id })
+    .populate("receiver sender referenceId")
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+  return result;
+};
+
 // get notifications for admin
 const adminNotificationFromDB = async (query: any) => {
-  const baseQuery = Notification.find({ type: NOTIFICATION_TYPE.ADMIN });
+  const baseQuery = Notification.find({ type: NOTIFICATION_TYPE.ADMIN }).populate("receiver sender referenceId");
 
   const unreadCount = await Notification.countDocuments({
     type: NOTIFICATION_TYPE.ADMIN,
@@ -68,9 +84,21 @@ const adminReadNotificationToDB = async (): Promise<INotification | null> => {
   return result;
 };
 
+// get recent activities for admin (last 5)
+const adminRecentActivitiesFromDB = async () => {
+  const result = await Notification.find({ type: NOTIFICATION_TYPE.ADMIN })
+    .populate("receiver sender referenceId")
+    .sort({ createdAt: -1 })
+    .limit(5);
+
+  return result;
+};
+
 export const NotificationService = {
   adminNotificationFromDB,
   getNotificationFromDB,
   readNotificationToDB,
   adminReadNotificationToDB,
+  getRecentActivitiesFromDB,
+  adminRecentActivitiesFromDB,
 };

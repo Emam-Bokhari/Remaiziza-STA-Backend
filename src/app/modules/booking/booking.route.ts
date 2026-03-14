@@ -77,15 +77,12 @@ router
     BookingControllers.getSingleBookingById,
   );
 
-
-
 router
   .route("/user")
   .get(
     auth(USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
     BookingControllers.getUserBookings,
   );
-
 
 router
   .route("/user/:bookingId")

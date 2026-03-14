@@ -18,8 +18,14 @@ const notificationSchema = new Schema<INotification, NotificationModel>(
       ref: "User",
     },
     referenceId: {
+      type: Schema.Types.ObjectId,
+      refPath: "referenceModel",
+      required: false,
+    },
+    referenceModel: {
       type: String,
       required: false,
+      enum: ["Booking", "Car", "Review", "User"],
     },
     read: {
       type: Boolean,

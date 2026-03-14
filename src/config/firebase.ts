@@ -1,5 +1,5 @@
-import admin from 'firebase-admin'
-import config from '.'
+import admin from "firebase-admin";
+import config from ".";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -8,7 +8,7 @@ if (!admin.apps.length) {
       privateKey: config.firebase.privateKey,
       clientEmail: config.firebase.clientEmail,
     }),
-  })
+  });
 }
 
-export const firebaseAdmin = admin
+export const firebaseAdmin = admin;

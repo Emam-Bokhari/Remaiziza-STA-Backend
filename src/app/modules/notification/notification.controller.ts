@@ -57,9 +57,34 @@ const adminReadNotification = catchAsync(
   },
 );
 
+const getRecentActivities = catchAsync(async (req: Request, res: Response) => {
+  const user = req.user;
+  const result = await NotificationService.getRecentActivitiesFromDB(user);
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Recent Activities Retrieved Successfully",
+    data: result,
+  });
+});
+
+const adminRecentActivities = catchAsync(async (req: Request, res: Response) => {
+  const result = await NotificationService.adminRecentActivitiesFromDB();
+
+  sendResponse(res, {
+    statusCode: StatusCodes.OK,
+    success: true,
+    message: "Admin Recent Activities Retrieved Successfully",
+    data: result,
+  });
+});
+
 export const NotificationController = {
   adminNotificationFromDB,
   getNotificationFromDB,
   readNotification,
   adminReadNotification,
+  getRecentActivities,
+  adminRecentActivities,
 };

@@ -57,6 +57,7 @@ const createReview = async (payload: IReview, reviewerId: string) => {
     receiver: review.reviewForId.toString(),
     type,
     referenceId: review._id.toString(),
+    referenceModel: "Review",
   });
 
   return review;

@@ -15,7 +15,10 @@ import { generateMembershipId } from "../../../helpers/generateYearBasedId";
 import { Types } from "mongoose";
 import { Booking } from "../booking/booking.model";
 import { BOOKING_STATUS } from "../booking/booking.interface";
-import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "../transaction/transaction.interface";
+import {
+  TRANSACTION_STATUS,
+  TRANSACTION_TYPE,
+} from "../transaction/transaction.interface";
 import { ReviewServices } from "../review/review.service";
 import { REVIEW_TARGET_TYPE } from "../review/review.interface";
 import { Car } from "../car/car.model";
@@ -133,6 +136,7 @@ const createHostToDB = async (payload: any) => {
       receiver: admin._id.toString(),
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: createHost._id.toString(),
+      referenceModel: "User",
     });
   }
 
@@ -176,7 +180,7 @@ const ghostLoginAsHost = async (superAdmin: JwtPayload, hostId: string) => {
 const getAllHostFromDB = async (query: any) => {
   const baseQuery = User.find({
     role: USER_ROLES.HOST,
-    status: STATUS.ACTIVE,
+    // status: STATUS.ACTIVE,
     verified: true,
   });
 
@@ -405,6 +409,7 @@ const deleteHostByIdFromD = async (id: string) => {
       receiver: admin._id.toString(),
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: result._id.toString(),
+      referenceModel: "User",
     });
   }
 
@@ -484,16 +489,16 @@ const createUserToDB = async (payload: any) => {
 
   if (admin) {
     await sendNotifications({
-      text: `New user signed up successfully by admin (${admin.name || admin._id})`,
+      text: `New user signed up successfully`,
       receiver: admin._id.toString(),
       type: NOTIFICATION_TYPE.ADMIN,
       referenceId: result.user._id.toString(),
+      referenceModel: "User",
     });
   }
 
   return result;
 };
-
 
 const getUserProfileFromDB = async (user: JwtPayload): Promise<any> => {
   const { id } = user;
