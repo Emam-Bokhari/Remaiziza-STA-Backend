@@ -31,7 +31,8 @@ app.use(
       "http://10.10.7.46:3015",
       "http://10.10.7.41:5003",
       "http://10.10.7.46:3014",
-      "https://rimaiziza-dashboard.vercel.app"
+      "https://rimaiziza-dashboard.vercel.app",
+      "https://dashboard.gogreenmatrix.my"
     ],
     credentials: true,
   }),
