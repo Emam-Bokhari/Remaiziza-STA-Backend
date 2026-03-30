@@ -9,9 +9,17 @@ const getNotificationFromDB = async (
   user: JwtPayload,
   query: Record<string, unknown>,
 ) => {
-  const baseQuery = Notification.find({ receiver: user.id }).populate(
-    "receiver sender referenceId",
-  );
+  const baseQuery = Notification.find({ receiver: user.id }).populate([
+    { path: "receiver" },
+    { path: "sender" },
+    {
+      path: "referenceId",
+      populate: {
+        path: "carId",
+        model: "Car",
+      },
+    },
+  ]);
 
   const unreadCount = await Notification.countDocuments({
     receiver: user.id,
@@ -49,7 +57,17 @@ const getRecentActivitiesFromDB = async (
   user: JwtPayload,
 ) => {
   const result = await Notification.find({ receiver: user.id })
-    .populate("receiver sender referenceId")
+    .populate([
+      { path: "receiver" },
+      { path: "sender" },
+      {
+        path: "referenceId",
+        populate: {
+          path: "carId",
+          model: "Car",
+        },
+      },
+    ])
     .sort({ createdAt: -1 })
     .limit(5);
 
@@ -58,7 +76,17 @@ const getRecentActivitiesFromDB = async (
 
 // get notifications for admin
 const adminNotificationFromDB = async (query: any) => {
-  const baseQuery = Notification.find({ type: NOTIFICATION_TYPE.ADMIN }).populate("receiver sender referenceId");
+  const baseQuery = Notification.find({ type: NOTIFICATION_TYPE.ADMIN }).populate([
+    { path: "receiver" },
+    { path: "sender" },
+    {
+      path: "referenceId",
+      populate: {
+        path: "carId",
+        model: "Car",
+      },
+    },
+  ]);
 
   const unreadCount = await Notification.countDocuments({
     type: NOTIFICATION_TYPE.ADMIN,
@@ -93,7 +121,17 @@ const adminReadNotificationToDB = async (): Promise<INotification | null> => {
 // get recent activities for admin (last 5)
 const adminRecentActivitiesFromDB = async () => {
   const result = await Notification.find({ type: NOTIFICATION_TYPE.ADMIN })
-    .populate("receiver sender referenceId")
+    .populate([
+      { path: "receiver" },
+      { path: "sender" },
+      {
+        path: "referenceId",
+        populate: {
+          path: "carId",
+          model: "Car",
+        },
+      },
+    ])
     .sort({ createdAt: -1 })
     .limit(5);
 
@@ -108,7 +146,17 @@ const getSingleNotificationFromDB = async (
   const result = await Notification.findOne({
     _id: id,
     receiver: user.id,
-  }).populate("receiver sender referenceId");
+  }).populate([
+    { path: "receiver" },
+    { path: "sender" },
+    {
+      path: "referenceId",
+      populate: {
+        path: "carId",
+        model: "Car",
+      },
+    },
+  ]);
 
   return result;
 };
@@ -134,7 +182,17 @@ const adminGetSingleNotificationFromDB = async (
   const result = await Notification.findOne({
     _id: id,
     type: NOTIFICATION_TYPE.ADMIN,
-  }).populate("receiver sender referenceId");
+  }).populate([
+    { path: "receiver" },
+    { path: "sender" },
+    {
+      path: "referenceId",
+      populate: {
+        path: "carId",
+        model: "Car",
+      },
+    },
+  ]);
 
   return result;
 };
