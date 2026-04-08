@@ -29,6 +29,16 @@ import {
 } from "../transaction/transaction.interface";
 
 const createCarToDB = async (payload: ICar) => {
+  // Check if the user is already assigned to another car
+  if (payload.assignedHosts) {
+    const isAlreadyAssigned = await Car.findOne({
+      assignedHosts: payload.assignedHosts,
+    });
+    if (isAlreadyAssigned) {
+      throw new ApiError(400, "This user is already assigned to another car, Please choose different user");
+    }
+  }
+
   const carId = await generateVehicleId();
 
   payload.vehicleId = carId;
@@ -207,6 +217,17 @@ const updateCarByIdToDB = async (
   // -------------------------- Handle normal updates --------------------------
   const cleanPayload = removeUndefined(payload);
   delete (cleanPayload as any).userId;
+
+  // Check if the user is already assigned to another car
+  if (cleanPayload.assignedHosts) {
+    const isAlreadyAssigned = await Car.findOne({
+      assignedHosts: cleanPayload.assignedHosts,
+      _id: { $ne: carId },
+    });
+    if (isAlreadyAssigned) {
+      throw new ApiError(400, "This user is already assigned to another car");
+    }
+  }
 
   const updated = await Car.findOneAndUpdate({ _id: carId }, cleanPayload, {
     new: true,

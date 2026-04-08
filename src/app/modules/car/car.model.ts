@@ -127,11 +127,11 @@ const CarSchema = new Schema<ICar>(
       type: Number,
       min: 0,
     },
-    minimumTripDuration: {
-      type: Number,
-      required: true,
-      min: 1,
-    }, // hours
+    // minimumTripDuration: {
+    //   type: Number,
+    //   required: true,
+    //   min: 1,
+    // }, // hours
     withDriver: {
       type: Boolean,
       default: false,

@@ -56,7 +56,7 @@ export interface ICar {
   assignedHosts?: Types.ObjectId;
   dailyPrice: number;
   hourlyPrice?: number;
-  minimumTripDuration: number; // in hours
+  // minimumTripDuration: number; // in hours
   withDriver: boolean;
   country?: string;
   state?: string;
