@@ -10,10 +10,15 @@ import { RESPONSE_MODE } from "../../constants/responseMode";
 import { responseMode } from "../../config/responseMode";
 
 const globalErrorHandler: ErrorRequestHandler = (error, req, res, next) => {
-  config.node_env === "development"
+try {
+    config.node_env === "development"
     ? console.log("🚨 globalErrorHandler", error)
     : errorLogger.error("🚨 globalErrorHandler", error);
 
+} catch (error) {
+  console.log(error);
+  
+}
   let statusCode = 500;
   let message = "Something went wrong";
   let errorMessages: IErrorMessage[] = [];
