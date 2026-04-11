@@ -29,16 +29,6 @@ import {
 } from "../transaction/transaction.interface";
 
 const createCarToDB = async (payload: ICar) => {
-  // Check if the user is already assigned to another car
-  if (payload.assignedHosts) {
-    const isAlreadyAssigned = await Car.findOne({
-      assignedHosts: payload.assignedHosts,
-    });
-    if (isAlreadyAssigned) {
-      throw new ApiError(400, "This user is already assigned to another car, Please choose different user");
-    }
-  }
-
   const carId = await generateVehicleId();
 
   payload.vehicleId = carId;
@@ -217,17 +207,6 @@ const updateCarByIdToDB = async (
   // -------------------------- Handle normal updates --------------------------
   const cleanPayload = removeUndefined(payload);
   delete (cleanPayload as any).userId;
-
-  // Check if the user is already assigned to another car
-  if (cleanPayload.assignedHosts) {
-    const isAlreadyAssigned = await Car.findOne({
-      assignedHosts: cleanPayload.assignedHosts,
-      _id: { $ne: carId },
-    });
-    if (isAlreadyAssigned) {
-      throw new ApiError(400, "This user is already assigned to another car");
-    }
-  }
 
   const updated = await Car.findOneAndUpdate({ _id: carId }, cleanPayload, {
     new: true,
@@ -953,7 +932,7 @@ const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   let hostBookingStatsPromise;
 
   if (car.assignedHosts) {
-    const hostId = car.assignedHosts._id;
+    const hostId = (car.assignedHosts as any)._id;
     reviewSummaryPromise = ReviewServices.getReviewSummary(
       hostId.toString(),
       REVIEW_TARGET_TYPE.HOST,
@@ -1050,47 +1029,21 @@ const getCarsByHostFromDB = async (hostId: string) => {
 
   const objectHostId = new Types.ObjectId(hostId);
 
-  // Single car fetch
-  const car = await Car.findOne({
-    assignedHosts: hostId,
+  // Fetch all cars for this host
+  const cars = await Car.find({
+    assignedHosts: objectHostId,
     isActive: true,
   }).lean();
 
-  if (!car) {
-    throw new ApiError(200, "No active car found for this host");
+  if (!cars.length) {
+    throw new ApiError(200, "No active cars found for this host");
   }
-
-  // -------------------- FAVORITE --------------------
-  const isBookmarked = await FavoriteCar.exists({
-    userId: objectHostId,
-    referenceId: car._id,
-  });
-
-  (car as any).isFavorite = !!isBookmarked;
-
-  const availabilityCalendar = await getCarCalendar(car._id.toString());
-
-  // -------------------- TRIPS --------------------
-  const tripCount = await getCarTripCount(car._id);
-  // (car as any).trips = tripCountMap[car._id.toString()] ?? 0;
-  (car as any).trips = tripCount ?? 0;
 
   // -------------------- REVIEWS --------------------
   const reviewSummary = await ReviewServices.getReviewSummary(
     hostId,
     REVIEW_TARGET_TYPE.HOST,
   );
-
-  (car as any).averageRating = reviewSummary?.averageRating ?? 0;
-  (car as any).totalReviews = reviewSummary?.totalReviews ?? 0;
-  (car as any).starCounts = reviewSummary?.starCounts ?? {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-  };
-  (car as any).reviews = reviewSummary?.reviews ?? [];
 
   // -------------------- HOST TOTAL EARNING --------------------
   const earningResult = await Transaction.aggregate([
@@ -1123,12 +1076,39 @@ const getCarsByHostFromDB = async (hostId: string) => {
     },
   ]);
 
-  (car as any).hostTotalEarning = earningResult[0]?.totalEarning ?? 0;
+  const hostTotalEarning = earningResult[0]?.totalEarning ?? 0;
 
-  return {
-    ...car,
-    availabilityCalendar,
-  };
+  const result = await Promise.all(
+    cars.map(async (car) => {
+      const isBookmarked = await FavoriteCar.exists({
+        userId: objectHostId,
+        referenceId: car._id,
+      });
+
+      const availabilityCalendar = await getCarCalendar(car._id.toString());
+      const tripCount = await getCarTripCount(car._id);
+
+      return {
+        ...car,
+        isFavorite: !!isBookmarked,
+        availabilityCalendar,
+        trips: tripCount ?? 0,
+        averageRating: reviewSummary?.averageRating ?? 0,
+        totalReviews: reviewSummary?.totalReviews ?? 0,
+        starCounts: reviewSummary?.starCounts ?? {
+          1: 0,
+          2: 0,
+          3: 0,
+          4: 0,
+          5: 0,
+        },
+        reviews: reviewSummary?.reviews ?? [],
+        hostTotalEarning,
+      };
+    }),
+  );
+
+  return result;
 };
 
 export const CarServices = {

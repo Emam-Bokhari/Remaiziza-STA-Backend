@@ -394,8 +394,6 @@ const approveBookingByHostFromDB = async (
 ) => {
   const booking = await Booking.findById(bookingId);
 
-  console.log(bookingId, "BookingId");
-
   if (!booking) throw new ApiError(404, "Booking not found");
 
   if (!booking.hostId.equals(hostId)) {

@@ -530,9 +530,11 @@ const getUserProfileFromDB = async (user: JwtPayload): Promise<any> => {
         ? Math.round((completedBookings / totalBookings) * 100)
         : 0;
          
-    const hostCar = await Car.findOne({ assignedHosts: id }, { _id: 1 });
-
-    const trips = hostCar ? await getCarTripCount(hostCar._id) : 0;
+    // Total trips from all assigned cars
+    const hostCars = await Car.find({ assignedHosts: id }).select("_id");
+    const carIds = hostCars.map((car) => car._id);
+    const tripMap = await getCarTripCountMap(carIds);
+    const trips = Object.values(tripMap).reduce((acc, count) => acc + count, 0);
 
     // Review summary
     const reviewSummary = await ReviewServices.getReviewSummary(
