@@ -140,7 +140,7 @@ const createHostToDB = async (payload: any) => {
       referenceModel: "User",
     });
   }
-  
+
   return createHost;
 };
 
@@ -529,7 +529,7 @@ const getUserProfileFromDB = async (user: JwtPayload): Promise<any> => {
       totalBookings > 0
         ? Math.round((completedBookings / totalBookings) * 100)
         : 0;
-         
+
     // Total trips from all assigned cars
     const hostCars = await Car.find({ assignedHosts: id }).select("_id");
     const carIds = hostCars.map((car) => car._id);

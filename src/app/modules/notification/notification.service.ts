@@ -54,9 +54,7 @@ const readNotificationToDB = async (
 };
 
 // get recent activities (last 5)
-const getRecentActivitiesFromDB = async (
-  user: JwtPayload,
-) => {
+const getRecentActivitiesFromDB = async (user: JwtPayload) => {
   const result = await Notification.find({ receiver: user.id })
     .populate([
       { path: "receiver" },
@@ -78,7 +76,9 @@ const getRecentActivitiesFromDB = async (
 
 // get notifications for admin
 const adminNotificationFromDB = async (query: any) => {
-  const baseQuery = Notification.find({ type: NOTIFICATION_TYPE.ADMIN }).populate([
+  const baseQuery = Notification.find({
+    type: NOTIFICATION_TYPE.ADMIN,
+  }).populate([
     { path: "receiver" },
     { path: "sender" },
     {

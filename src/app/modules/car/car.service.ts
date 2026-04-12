@@ -104,10 +104,10 @@ export type ArrayActionValue =
   | string
   | Types.ObjectId
   | {
-    label: string;
-    value: string;
-    icon?: string;
-  };
+      label: string;
+      value: string;
+      icon?: string;
+    };
 
 export interface IArrayAction {
   field: "images" | "availableDays" | "facilities" | "assignedHosts";

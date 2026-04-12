@@ -4,9 +4,9 @@ import { Notification } from "../app/modules/notification/notification.model";
 export const sendNotifications = async (
   data: Partial<INotification>,
 ): Promise<INotification> => {
-  const result = await (await Notification.create(data)).populate(
-    "receiver sender referenceId",
-  );
+  const result = await (
+    await Notification.create(data)
+  ).populate("receiver sender referenceId");
 
   //@ts-ignore
   const socketIo = global.io;

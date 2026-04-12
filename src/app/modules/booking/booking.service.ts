@@ -111,7 +111,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
       uniqueReceivers.set(r.receiver, r);
     }
   }
-  
+
   // 4️⃣ Send notifications
   await Promise.all(
     Array.from(uniqueReceivers.values()).map((r) =>

@@ -22,7 +22,6 @@ const getNotificationFromDB = catchAsync(
   },
 );
 
-
 const readNotification = catchAsync(async (req: Request, res: Response) => {
   const user = req.user;
   const result = await NotificationService.readNotificationToDB(user);
@@ -74,17 +73,18 @@ const getRecentActivities = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-const adminRecentActivities = catchAsync(async (req: Request, res: Response) => {
-  const result = await NotificationService.adminRecentActivitiesFromDB();
+const adminRecentActivities = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await NotificationService.adminRecentActivitiesFromDB();
 
-  sendResponse(res, {
-    statusCode: StatusCodes.OK,
-    success: true,
-    message: "Admin Recent Activities Retrieved Successfully",
-    data: result,
-  });
-});
-
+    sendResponse(res, {
+      statusCode: StatusCodes.OK,
+      success: true,
+      message: "Admin Recent Activities Retrieved Successfully",
+      data: result,
+    });
+  },
+);
 
 // user single get
 const getSingleNotification = catchAsync(async (req, res) => {
@@ -118,10 +118,9 @@ const readSingleNotification = catchAsync(async (req, res) => {
 
 // admin single get
 const adminGetSingleNotification = catchAsync(async (req, res) => {
-  const result =
-    await NotificationService.adminGetSingleNotificationFromDB(
-      req.params.id,
-    );
+  const result = await NotificationService.adminGetSingleNotificationFromDB(
+    req.params.id,
+  );
 
   sendResponse(res, {
     statusCode: 200,
@@ -133,12 +132,11 @@ const adminGetSingleNotification = catchAsync(async (req, res) => {
 
 // admin single read
 const adminReadSingleNotification = catchAsync(async (req, res) => {
-  const result =
-    await NotificationService.adminReadSingleNotificationToDB(
-      req.params.id,
-    );
+  const result = await NotificationService.adminReadSingleNotificationToDB(
+    req.params.id,
+  );
 
-    console.log(result, "RESULT");
+  console.log(result, "RESULT");
 
   sendResponse(res, {
     statusCode: 200,

@@ -1,6 +1,10 @@
-
-
-import { NextFunction, query, Request, RequestHandler, Response } from "express";
+import {
+  NextFunction,
+  query,
+  Request,
+  RequestHandler,
+  Response,
+} from "express";
 import { AnyZodObject } from "zod";
 
 const validateRequest =
@@ -19,7 +23,3 @@ const validateRequest =
     }
   };
 export default validateRequest;
-
-
-
-
