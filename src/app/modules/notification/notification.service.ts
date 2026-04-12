@@ -17,6 +17,7 @@ const getNotificationFromDB = async (
       populate: {
         path: "carId",
         model: "Car",
+        strictPopulate: false,
       },
     },
   ]);
@@ -65,6 +66,7 @@ const getRecentActivitiesFromDB = async (
         populate: {
           path: "carId",
           model: "Car",
+          strictPopulate: false,
         },
       },
     ])
@@ -84,6 +86,7 @@ const adminNotificationFromDB = async (query: any) => {
       populate: {
         path: "carId",
         model: "Car",
+        strictPopulate: false,
       },
     },
   ]);
@@ -129,6 +132,7 @@ const adminRecentActivitiesFromDB = async () => {
         populate: {
           path: "carId",
           model: "Car",
+          strictPopulate: false,
         },
       },
     ])
@@ -154,6 +158,7 @@ const getSingleNotificationFromDB = async (
       populate: {
         path: "carId",
         model: "Car",
+        strictPopulate: false,
       },
     },
   ]);
@@ -190,6 +195,7 @@ const adminGetSingleNotificationFromDB = async (
       populate: {
         path: "carId",
         model: "Car",
+        strictPopulate: false,
       },
     },
   ]);
