@@ -144,6 +144,22 @@ const getCarsByHost = catchAsync(async (req, res) => {
   });
 });
 
+const getSingleCarByHost = catchAsync(async (req, res) => {
+  const { id: hostId } = req.user as any;
+  const { id } = req.params;
+
+  const result = await CarServices.getSingleCarByHostFromDB(id, hostId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Successfully retrieved car by host",
+    data: result,
+  });
+});
+
+
+
 export const CarControllers = {
   createCar,
   getAllCars,
@@ -154,4 +170,5 @@ export const CarControllers = {
   deleteCarById,
   getNearbyCars,
   getCarsByHost,
+  getSingleCarByHost,
 };

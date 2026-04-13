@@ -13,6 +13,10 @@ router
 
 router.route("/host").get(auth(USER_ROLES.HOST), CarControllers.getCarsByHost);
 
+router.route("/host/:id").get(auth(USER_ROLES.HOST), CarControllers.getSingleCarByHost);
+
+
+
 router
   .route("/user/:id")
   .get(

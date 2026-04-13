@@ -1022,6 +1022,94 @@ const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   };
 };
 
+const getSingleCarByHostFromDB = async (carId: string, hostId: string) => {
+  if (!carId || !Types.ObjectId.isValid(carId)) {
+    throw new ApiError(400, "Invalid carId");
+  }
+  if (!hostId || !Types.ObjectId.isValid(hostId)) {
+    throw new ApiError(400, "Invalid hostId");
+  }
+
+  const objectCarId = new Types.ObjectId(carId);
+  const objectHostId = new Types.ObjectId(hostId);
+
+  // Fetch the car for this host
+  const car = await Car.findOne({
+    _id: objectCarId,
+    assignedHosts: objectHostId,
+    isActive: true,
+  }).lean();
+
+  if (!car) {
+    throw new ApiError(404, "Car not found or not active for this host");
+  }
+
+  // -------------------- REVIEWS --------------------
+  const reviewSummary = await ReviewServices.getReviewSummary(
+    hostId,
+    REVIEW_TARGET_TYPE.HOST,
+  );
+
+  // -------------------- HOST TOTAL EARNING --------------------
+  const earningResult = await Transaction.aggregate([
+    {
+      $match: {
+        type: TRANSACTION_TYPE.BOOKING,
+        status: TRANSACTION_STATUS.SUCCESS,
+      },
+    },
+    {
+      $lookup: {
+        from: "bookings",
+        localField: "bookingId",
+        foreignField: "_id",
+        as: "booking",
+      },
+    },
+    { $unwind: "$booking" },
+    {
+      $match: {
+        "booking.hostId": objectHostId,
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalEarning: { $sum: "$charges.hostCommission" },
+      },
+    },
+  ]);
+
+  const hostTotalEarning = earningResult[0]?.totalEarning ?? 0;
+
+  const isBookmarked = await FavoriteCar.exists({
+    userId: objectHostId,
+    referenceId: car._id,
+  });
+
+  const availabilityCalendar = await getCarCalendar(car._id.toString());
+  const tripCount = await getCarTripCount(car._id);
+
+  return {
+    ...car,
+    isFavorite: !!isBookmarked,
+    availabilityCalendar,
+    trips: tripCount ?? 0,
+    averageRating: reviewSummary?.averageRating ?? 0,
+    totalReviews: reviewSummary?.totalReviews ?? 0,
+    starCounts: reviewSummary?.starCounts ?? {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    },
+    reviews: reviewSummary?.reviews ?? [],
+    hostTotalEarning,
+  };
+};
+
 const getCarsByHostFromDB = async (hostId: string) => {
   if (!hostId || !Types.ObjectId.isValid(hostId)) {
     throw new ApiError(400, "Invalid hostId");
@@ -1124,4 +1212,5 @@ export const CarServices = {
   deleteCarByIdFromDB,
   getNearbyCarsFromDB,
   getCarsByHostFromDB,
+  getSingleCarByHostFromDB,
 };
