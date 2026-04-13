@@ -9,6 +9,8 @@ const createCar = catchAsync(async (req, res) => {
 
   const result = await CarServices.createCarToDB(carData);
 
+  console.log(carData,"CAR DATA");
+
   sendResponse(res, {
     success: true,
     statusCode: 200,
