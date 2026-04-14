@@ -111,7 +111,7 @@ export const handleExtendBookingSuccess = async (session: any) => {
   }
 
   // Get newToDate (recommended from DB, not metadata)
-  const newToDate = transaction.extendToDate; // 👈 safer
+  const newToDate = transaction.extendToDate; //  safer
 
   if (!newToDate) {
     console.error("No extendToDate found in transaction");
@@ -123,12 +123,12 @@ export const handleExtendBookingSuccess = async (session: any) => {
     return;
   }
 
-  // ✅ Update transaction
+  //  Update transaction
   transaction.status = TRANSACTION_STATUS.SUCCESS;
   transaction.stripePaymentIntentId = session.payment_intent;
   await transaction.save();
 
-  // ✅ Update booking time and amounts
+  // Update booking time and amounts
   const oldToDate = booking.toDate;
   booking.toDate = newToDate;
 
@@ -163,7 +163,7 @@ export const handleExtendBookingSuccess = async (session: any) => {
 
   await booking.save();
 
-  console.log(`🚀 Booking ${booking._id} extended to ${newToDate}`);
+  console.log(` Booking ${booking._id} extended to ${newToDate}`);
 };
 
 /** Handle host account.updated → mark onboarded */
@@ -368,7 +368,7 @@ export const refundDepositIfEligible = async (bookingId: string) => {
 export const bookingStatusCronJob = async () => {
   const now = new Date();
 
-  // 1️⃣ Self booking REQUESTED → ONGOING
+  //  Self booking REQUESTED → ONGOING
   const requestedBookings = await Booking.find({
     bookingStatus: BOOKING_STATUS.REQUESTED,
     isSelfBooking: true,
@@ -388,7 +388,7 @@ export const bookingStatusCronJob = async () => {
     }
   }
 
-  // 2️⃣ CONFIRMED → ONGOING
+  //  CONFIRMED → ONGOING
   const confirmedBookings = await Booking.find({
     bookingStatus: BOOKING_STATUS.CONFIRMED,
     fromDate: { $lte: now },
@@ -407,7 +407,7 @@ export const bookingStatusCronJob = async () => {
     }
   }
 
-  // 3️⃣ ONGOING → COMPLETED + schedule deposit
+  // ONGOING → COMPLETED + schedule deposit
   const ongoingBookings = await Booking.find({
     bookingStatus: BOOKING_STATUS.ONGOING,
     toDate: { $lte: now },
@@ -426,7 +426,7 @@ export const bookingStatusCronJob = async () => {
     }
   }
 
-  // 4️⃣ Deposit refund eligible
+  //  Deposit refund eligible
   const refundableBookings = await Booking.find({
     bookingStatus: BOOKING_STATUS.COMPLETED,
     depositRefundableAt: { $lte: now },
@@ -444,7 +444,7 @@ export const bookingStatusCronJob = async () => {
     }
   }
 
-  // 5️⃣ Mark REQUESTED and PENDING bookings as EXPIRED if fromDate <= now
+  //  Mark REQUESTED and PENDING bookings as EXPIRED if fromDate <= now
   const expiredBookings = await Booking.find({
     bookingStatus: { $in: [BOOKING_STATUS.REQUESTED, BOOKING_STATUS.PENDING] },
     fromDate: { $lte: now },

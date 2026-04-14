@@ -348,7 +348,7 @@ export const validateAvailabilityStrict = async (
   console.log(dateMap, "DATE MAP");
 
   for (const [date, hours] of Object.entries(dateMap)) {
-    // 1️⃣ Check blockedDates
+    //  Check blockedDates
     const blockedEntry = car.blockedDates?.find(
       (b: any) => new Date(b.date).toISOString().split("T")[0] === date,
     );
@@ -359,7 +359,7 @@ export const validateAvailabilityStrict = async (
       );
     }
 
-    // 2️⃣ Check availableDays
+    //  Check availableDays
 
     const dayName = new Date(date)
       .toLocaleDateString("en-US", { weekday: "long" })
@@ -370,7 +370,7 @@ export const validateAvailabilityStrict = async (
 
     console.log(dayName, "DAY NAME");
 
-    // 3️⃣ Build openHoursSet
+    // Build openHoursSet
     const openHoursSet = new Set<number>();
     if (car.availableHours?.length) {
       car.availableHours.forEach((t: string) => {
@@ -385,7 +385,7 @@ export const validateAvailabilityStrict = async (
       for (let i = 0; i < 24; i++) openHoursSet.add(i);
     }
 
-    // 4️⃣ Fetch conflicting bookings for this date
+    //  Fetch conflicting bookings for this date
     // Widen search window to handle timezone overlaps
     // Parse "YYYY-MM-DD" to Local Start of Day
     const [y, m, d] = date.split("-").map(Number);
@@ -424,7 +424,7 @@ export const validateAvailabilityStrict = async (
       }
     });
 
-    // 5️⃣ Validate requested hours
+    // Validate requested hours
     for (const hour of hours) {
       if (!openHoursSet.has(hour)) {
         throw new ApiError(

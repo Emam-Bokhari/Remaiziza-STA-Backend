@@ -80,7 +80,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
 
   const notificationText = `Booking ${result.bookingId} status is ${result.bookingStatus}`;
 
-  // 1️⃣ Collect receivers
+  // Collect receivers
   const receivers = [
     {
       receiver: result.userId.toString(),
@@ -92,7 +92,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
     },
   ];
 
-  // 2️⃣ Add admin if exists
+  //  Add admin if exists
   const admin = await User.findOne({ role: USER_ROLES.SUPER_ADMIN }).select(
     "_id",
   );
@@ -103,7 +103,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
     });
   }
 
-  // 3️⃣ Deduplicate by receiver
+  //  Deduplicate by receiver
   const uniqueReceivers = new Map<string, (typeof receivers)[0]>();
 
   for (const r of receivers) {
@@ -112,7 +112,7 @@ const createBookingToDB = async (payload: any, userId: string) => {
     }
   }
 
-  // 4️⃣ Send notifications
+  //  Send notifications
   await Promise.all(
     Array.from(uniqueReceivers.values()).map((r) =>
       sendNotifications({
@@ -140,14 +140,14 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
   const skip = (Number(page) - 1) * Number(limit);
   const now = new Date();
 
-  // 1️⃣ Base Filter
+  // Base Filter
   const match: any = {
     hostId: new Types.ObjectId(hostId),
   };
 
   console.log(status, "STATUS");
 
-  // 2️⃣ Status Filter
+  // Status Filter
   if (status) {
     const statuses = status
       .split(",")
@@ -165,10 +165,10 @@ const getHostBookingsFromDB = async (hostId: string, query: any) => {
     match.bookingStatus = { $in: statuses };
   }
 
-  // 3️⃣ Expiry & Overlapping Logic for REQUESTED and PENDING bookings (Removed hiding logic)
+  // Expiry & Overlapping Logic for REQUESTED and PENDING bookings (Removed hiding logic)
   const pipeline: any[] = [{ $match: match }];
 
-  // 4️⃣ Final Aggregation with Pagination and Populate
+  // Final Aggregation with Pagination and Populate
   const [result] = await Booking.aggregate([
     ...pipeline,
     { $sort: { createdAt: -1 } },
@@ -410,7 +410,7 @@ const approveBookingByHostFromDB = async (
     throw new ApiError(400, "Booking request has expired");
   }
 
-  // 2️⃣ Check overlapping confirmed/ongoing bookings for the user
+  // Check overlapping confirmed/ongoing bookings for the user
   const overlapping = await Booking.findOne({
     userId: booking.userId,
     _id: { $ne: booking._id },
@@ -429,7 +429,7 @@ const approveBookingByHostFromDB = async (
   }
 
   /**
-   * 🔒 STRICT re-validation before approve
+   * STRICT re-validation before approve
    * Ignore current booking itself
    */
   await validateAvailabilityStrictForApproval(

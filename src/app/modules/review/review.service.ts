@@ -5,13 +5,7 @@ import { Review } from "./review.model";
 import { sendNotifications } from "../../../helpers/notificationsHelper";
 import { NOTIFICATION_TYPE } from "../notification/notification.constant";
 
-/**
-1. April,May - n8n course 
-2. June, July, August - Workflow + Backend + Frontend + Integration
-3. September, October - PostgreSQL
-4. November, December - All Revise (React,Next.js,Redux,Error Handing,Auth etc)
-5. January - Job Switch Planing + DevOps Course (4 Months [Jan,Feb,Mar,Apr])
-*/
+
 
 // Create review (dual: host <-> user)
 const createReview = async (payload: IReview, reviewerId: string) => {

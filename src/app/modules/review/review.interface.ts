@@ -8,13 +8,13 @@ export enum REVIEW_TARGET_TYPE {
 export interface IReview {
   _id?: Types.ObjectId;
 
-  reviewForId: Types.ObjectId; // যাকে review দেওয়া হচ্ছে (host or user)
-  reviewById: Types.ObjectId; // যিনি review দিয়েছেন (user or host)
+  reviewForId: Types.ObjectId; //  review for id (host or user)
+  reviewById: Types.ObjectId; //  review by id (user or host)
 
   ratingValue: number; // 1 to 5
   feedback?: string;
 
-  reviewType: REVIEW_TARGET_TYPE; // HOST বা USER
+  reviewType: REVIEW_TARGET_TYPE; // HOST or USER
 
   createdAt?: Date;
   updatedAt?: Date;

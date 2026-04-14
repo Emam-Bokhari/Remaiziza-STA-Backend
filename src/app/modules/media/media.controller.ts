@@ -20,7 +20,7 @@ const getMediaByType = catchAsync(async (req, res) => {
 
   console.log(type, includeInactive, "Type & IncludeInactive");
 
-  // query string থেকে boolean convert
+  // query string to boolean convert
   const includeInactiveBool = includeInactive === "true";
 
   const result = await MediaServices.getMediaByTypeFromDB(

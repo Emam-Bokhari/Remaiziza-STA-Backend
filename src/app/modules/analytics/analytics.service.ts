@@ -33,7 +33,7 @@ const getDashboardStats = async () => {
       { $unwind: "$booking" },
       {
         $match: {
-          "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+          "booking.bookingStatus": BOOKING_STATUS.COMPLETED, 
         },
       },
       {
@@ -96,7 +96,7 @@ const getYearlyRevenueChart = async (year?: number) => {
     { $unwind: "$booking" },
     {
       $match: {
-        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
       },
     },
     {
@@ -177,7 +177,7 @@ const getYearlyBookingAndUserChart = async (year?: number) => {
     { $unwind: "$booking" },
     {
       $match: {
-        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // only completed bookings count
       },
     },
     {
@@ -261,7 +261,7 @@ const getUserStats = async () => {
     { $unwind: "$booking" },
     {
       $match: {
-        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // only completed bookings count
       },
     },
     {
@@ -313,7 +313,7 @@ const getBookingSummary = async () => {
     },
   ]);
 
-  // totalBookings = BOOKING + EXTEND — শুধু COMPLETED
+  // totalBookings = BOOKING + EXTEND — only completed bookings count
   const transactionAgg = await Transaction.aggregate([
     {
       $match: {
@@ -332,7 +332,7 @@ const getBookingSummary = async () => {
     { $unwind: "$booking" },
     {
       $match: {
-        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // only completed bookings count
       },
     },
     {
@@ -449,7 +449,7 @@ const getHostMonthlyEarnings = async (hostId: string, year?: number) => {
     {
       $match: {
         "booking.hostId": objectHostId,
-        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // শুধু COMPLETED
+        "booking.bookingStatus": BOOKING_STATUS.COMPLETED, // only completed bookings count
       },
     },
     {
