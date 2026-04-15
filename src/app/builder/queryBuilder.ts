@@ -23,6 +23,33 @@ class QueryBuilder<T> {
       } as FilterQuery<T>);
     });
 
+    // Support combined brand and model search if both are searchable
+    if (
+      searchableFields.includes("brand") &&
+      searchableFields.includes("model")
+    ) {
+      orConditions.push({
+        $expr: {
+          $or: [
+            {
+              $regexMatch: {
+                input: { $concat: ["$brand", " ", "$model"] },
+                regex: searchTerm,
+                options: "i",
+              },
+            },
+            {
+              $regexMatch: {
+                input: { $concat: ["$model", " ", "$brand"] },
+                regex: searchTerm,
+                options: "i",
+              },
+            },
+          ],
+        },
+      } as FilterQuery<T>);
+    }
+
     // ObjectId exact match
     if (Types.ObjectId.isValid(searchTerm)) {
       orConditions.push({

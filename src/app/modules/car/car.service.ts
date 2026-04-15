@@ -629,7 +629,9 @@ const getNearbyCarsFromDB = async (params: any) => {
 
   // Search term
   if (searchTerm && searchTerm.trim()) {
-    const searchRegex = new RegExp(searchTerm.trim(), "i");
+    const trimmedSearch = searchTerm.trim();
+    const searchRegex = new RegExp(trimmedSearch, "i");
+
     queryFilters.$or = [
       { brand: searchRegex },
       { model: searchRegex },
@@ -639,6 +641,28 @@ const getNearbyCarsFromDB = async (params: any) => {
       { color: searchRegex },
       { shortDescription: searchRegex },
       { about: searchRegex },
+      { vehicleId: searchRegex },
+      // Support combined brand and model search (e.g., "Toyota Corolla")
+      {
+        $expr: {
+          $or: [
+            {
+              $regexMatch: {
+                input: { $concat: ["$brand", " ", "$model"] },
+                regex: trimmedSearch,
+                options: "i",
+              },
+            },
+            {
+              $regexMatch: {
+                input: { $concat: ["$model", " ", "$brand"] },
+                regex: trimmedSearch,
+                options: "i",
+              },
+            },
+          ],
+        },
+      },
     ];
   }
 
