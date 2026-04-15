@@ -7,8 +7,8 @@ const socket = (io: Server) => {
     logger.info(colors.blue("A User connected"));
 
     // disconnect
-    socket.on("disconnect", () => {
-      logger.info(colors.red("A user disconnect"));
+    socket.on("disconnect", (reason) => {
+      logger.info(colors.red(`A user disconnect. Reason: ${reason}`));
     });
   });
 };

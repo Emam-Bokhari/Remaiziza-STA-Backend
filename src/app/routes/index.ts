@@ -17,6 +17,7 @@ import { BookingRoutes } from "../modules/booking/booking.route";
 import { StripeRoutes } from "../modules/stripe/stripe.route";
 import { TransactionRoutes } from "../modules/transaction/transaction.route";
 import { NotificationRoutes } from "../modules/notification/notification.routes";
+import { FcmTokenRoutes } from "../modules/fcmToken/fcmToken.route";
 
 const router = express.Router();
 
@@ -101,6 +102,10 @@ const apiRoutes = [
   {
     path: "/notifications",
     route: NotificationRoutes,
+  },
+  {
+    path: "/fcmTokens",
+    route: FcmTokenRoutes,
   },
 ];
 

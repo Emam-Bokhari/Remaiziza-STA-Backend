@@ -18,9 +18,10 @@ import generateOTP from "../../../util/generateOTP";
 import { emailTemplate } from "../../../shared/emailTemplate";
 import { STATUS } from "../../../enums/user";
 import { firebaseAdmin } from "../../../config/firebase";
+import { FcmTokenService } from "../fcmToken/fcmService";
 
 const loginUserFromDB = async (payload: ILoginData) => {
-  const { email, password } = payload;
+  const { email, password, fcmToken, deviceId, deviceType } = payload;
 
   const isExistUser = await User.findOne({ email }).select("+password");
   if (!isExistUser) {
@@ -51,6 +52,15 @@ const loginUserFromDB = async (payload: ILoginData) => {
     !(await User.isMatchPassword(password, isExistUser.password!))
   ) {
     throw new ApiError(StatusCodes.BAD_REQUEST, "Password is incorrect!");
+  }
+
+  // Save device token if provided
+  if (fcmToken && deviceId && deviceType) {
+    await FcmTokenService.saveDeviceToken(isExistUser._id, {
+      fcmToken,
+      deviceId,
+      deviceType,
+    });
   }
 
   // create token
@@ -350,11 +360,13 @@ const deleteUserFromDB = async (user: JwtPayload, password: string) => {
 
 const googleLoginService = async (payload: {
   token: string;
-  deviceToken?: string;
+  fcmToken?: string;
+  deviceId?: string;
+  deviceType?: 'ios' | 'android' | 'web';
 }) => {
-  const { token, deviceToken } = payload;
+  const { token, fcmToken, deviceId, deviceType } = payload;
 
-  console.log(token, deviceToken, "Token and device token");
+  console.log(token, fcmToken, "Token and device token");
 
   if (!token) {
     throw new ApiError(
@@ -437,7 +449,15 @@ const googleLoginService = async (payload: {
       profileImage: picture,
       verified: email_verified,
       status: STATUS.ACTIVE,
-      deviceToken,
+    });
+  }
+
+  // Save device token if provided
+  if (fcmToken && deviceId && deviceType) {
+    await FcmTokenService.saveDeviceToken(user._id, {
+      fcmToken,
+      deviceId,
+      deviceType,
     });
   }
 

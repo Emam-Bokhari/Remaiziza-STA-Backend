@@ -36,9 +36,11 @@ async function main() {
     //socket
     const io = new Server(server, {
       pingTimeout: 60000,
+      pingInterval: 25000,
       cors: {
         origin: "*",
       },
+      transports: ["websocket", "polling"],
     });
 
     socketHelper.socket(io);

@@ -3,4 +3,5 @@ export enum NOTIFICATION_TYPE {
   ADMIN = "ADMIN",
   USER = "USER",
   HOST = "HOST",
+  MESSAGE_NEW = "MESSAGE_NEW",
 }
