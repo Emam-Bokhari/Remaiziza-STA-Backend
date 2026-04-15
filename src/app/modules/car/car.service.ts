@@ -7,6 +7,7 @@ import { Car } from "./car.model";
 import { sendNotifications } from "../../../helpers/notificationsHelper";
 import { NOTIFICATION_TYPE } from "../notification/notification.constant";
 import { generateVehicleId } from "../../../helpers/generateYearBasedId";
+import { getCarCalendarOptimized } from "./car.utils";
 import {
   checkCarAvailabilityByDate,
   checkIfUserHasPaid,
@@ -931,7 +932,7 @@ const getNearbyCarsFromDB = async (params: any) => {
   };
 };
 
-import { getCarCalendarOptimized } from "./car.utils";
+
 
 const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   const car = await Car.findById(id).populate("assignedHosts");
@@ -939,7 +940,7 @@ const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   if (!car) {
     return null;
   }
-
+  
   const now = new Date();
 
   // --- Run database queries in parallel for performance ---

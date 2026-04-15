@@ -42,3 +42,4 @@ const saveDeviceToken = async (userId: string | mongoose.Types.ObjectId, payload
 export const FcmTokenService = {
      saveDeviceToken,
 };
+
