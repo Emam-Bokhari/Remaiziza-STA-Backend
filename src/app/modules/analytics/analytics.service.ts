@@ -193,6 +193,11 @@ const getYearlyBookingAndUserChart = async (year?: number) => {
     {
       $match: {
         createdAt: { $gte: start, $lte: end },
+        role: { $in: [USER_ROLES.USER] }, // e.g. ["USER", "ADMIN"]
+      // verification check
+        verified: true,
+      // account status
+      status: STATUS.ACTIVE,
       },
     },
     {
