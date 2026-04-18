@@ -33,7 +33,7 @@ const getDashboardStats = async () => {
       { $unwind: "$booking" },
       {
         $match: {
-          "booking.bookingStatus": BOOKING_STATUS.COMPLETED, 
+          "booking.bookingStatus": BOOKING_STATUS.COMPLETED,
         },
       },
       {
@@ -53,7 +53,10 @@ const getDashboardStats = async () => {
       0,
     );
 
-    const totalBookings = transactionAgg.length;
+    // const totalBookings = transactionAgg.length;
+    const totalBookings = transactionAgg.filter(
+      (t) => t.type === TRANSACTION_TYPE.BOOKING,
+    ).length;
 
     const activeVehicles = await Car.countDocuments({ isActive: true });
 
@@ -162,7 +165,7 @@ const getYearlyBookingAndUserChart = async (year?: number) => {
     {
       $match: {
         status: TRANSACTION_STATUS.SUCCESS,
-        type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
+        type: { $in: [TRANSACTION_TYPE.BOOKING] }, // , TRANSACTION_TYPE.EXTEND
         createdAt: { $gte: start, $lte: end },
       },
     },
@@ -194,10 +197,10 @@ const getYearlyBookingAndUserChart = async (year?: number) => {
       $match: {
         createdAt: { $gte: start, $lte: end },
         role: { $in: [USER_ROLES.USER] }, // e.g. ["USER", "ADMIN"]
-      // verification check
+        // verification check
         verified: true,
-      // account status
-      status: STATUS.ACTIVE,
+        // account status
+        status: STATUS.ACTIVE,
       },
     },
     {
@@ -323,7 +326,7 @@ const getBookingSummary = async () => {
     {
       $match: {
         status: TRANSACTION_STATUS.SUCCESS,
-        type: { $in: [TRANSACTION_TYPE.BOOKING, TRANSACTION_TYPE.EXTEND] },
+        type: { $in: [TRANSACTION_TYPE.BOOKING] }, // , TRANSACTION_TYPE.EXTEND
       },
     },
     {
