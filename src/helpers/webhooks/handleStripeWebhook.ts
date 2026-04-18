@@ -80,21 +80,117 @@ export const handleCheckoutSessionCompleted = async (session: any) => {
   }
 };
 
+// Handle extend booking success [PREVIOUS CODE]
+// export const handleExtendBookingSuccess = async (session: any) => {
+//   const transactionId = session.metadata?.transactionId;
+//   if (!transactionId) return;
+
+//   const transaction = await Transaction.findById(transactionId);
+//   if (!transaction) return;
+
+//   // 🔒 Prevent double execution
+//   if (transaction.status === TRANSACTION_STATUS.SUCCESS) {
+//     console.log("Extend already processed");
+//     return;
+//   }
+
+//   // Only EXTEND type allowed
+//   if (transaction.type !== TRANSACTION_TYPE.EXTEND) return;
+
+//   const booking = await Booking.findById(transaction.bookingId);
+//   if (!booking) return;
+
+//   // Booking must be active
+//   if (
+//     ![BOOKING_STATUS.CONFIRMED, BOOKING_STATUS.ONGOING].includes(
+//       booking.bookingStatus,
+//     )
+//   ) {
+//     console.log("Booking not in extendable state");
+//     return;
+//   }
+
+//   // Get newToDate (recommended from DB, not metadata)
+//   const newToDate = transaction.extendToDate; //  safer
+
+//   if (!newToDate) {
+//     console.error("No extendToDate found in transaction");
+//     return;
+//   }
+
+//   if (newToDate <= booking.toDate) {
+//     console.log("Invalid extend date");
+//     return;
+//   }
+
+//   //  Update transaction
+//   transaction.status = TRANSACTION_STATUS.SUCCESS;
+//   transaction.stripePaymentIntentId = session.payment_intent;
+//   await transaction.save();
+
+//   // Update booking time and amounts
+//   const oldToDate = booking.toDate;
+//   booking.toDate = newToDate;
+
+//   // Update cumulative totals in booking
+//   const extensionPlatformFee = transaction.charges?.platformFee || 0;
+//   const extensionHostCommission = transaction.charges?.hostCommission || 0;
+//   const extensionAdminCommission = transaction.charges?.adminCommission || 0;
+//   const extensionRentalPrice = transaction.amount - extensionPlatformFee;
+
+//   (booking as any).rentalPrice =
+//     ((booking as any).rentalPrice || 0) + extensionRentalPrice;
+//   (booking as any).platformFee =
+//     ((booking as any).platformFee || 0) + extensionPlatformFee;
+//   (booking as any).hostCommission =
+//     ((booking as any).hostCommission || 0) + extensionHostCommission;
+//   (booking as any).adminCommission =
+//     ((booking as any).adminCommission || 0) + extensionAdminCommission;
+//   booking.totalAmount = (booking.totalAmount || 0) + transaction.amount;
+//   // booking.extendedHours =
+//   //   (booking.extendedHours || 0) + (transaction.extendedHours || 0);
+
+//   // Optional: store extend history
+//   booking.extendHistory = [
+//     ...(booking.extendHistory || []),
+//     {
+//       previousToDate: oldToDate,
+//       newToDate,
+//       transactionId: transaction._id,
+//       extendedAt: new Date(),
+//     },
+//   ];
+
+//   await booking.save();
+
+//   console.log(` Booking ${booking._id} extended to ${newToDate}`);
+// };
+
+// [NEW CODE]
 // Handle extend booking success
 export const handleExtendBookingSuccess = async (session: any) => {
   const transactionId = session.metadata?.transactionId;
   if (!transactionId) return;
 
-  const transaction = await Transaction.findById(transactionId);
-  if (!transaction) return;
+  // 🔒 Atomic update to prevent double execution
+  const transaction = await Transaction.findOneAndUpdate(
+    {
+      _id: transactionId,
+      status: TRANSACTION_STATUS.INITIATED,
+    },
+    {
+      status: TRANSACTION_STATUS.SUCCESS,
+      stripePaymentIntentId: session.payment_intent,
+    },
+    { new: true },
+  );
 
-  // 🔒 Prevent double execution
-  if (transaction.status === TRANSACTION_STATUS.SUCCESS) {
-    console.log("Extend already processed");
+  if (!transaction) {
+    console.log("Transaction already processed or not found");
     return;
   }
 
-  // Only EXTEND type allowed
+  // Only EXTEND allowed
   if (transaction.type !== TRANSACTION_TYPE.EXTEND) return;
 
   const booking = await Booking.findById(transaction.bookingId);
@@ -110,9 +206,7 @@ export const handleExtendBookingSuccess = async (session: any) => {
     return;
   }
 
-  // Get newToDate (recommended from DB, not metadata)
-  const newToDate = transaction.extendToDate; //  safer
-
+  const newToDate = transaction.extendToDate;
   if (!newToDate) {
     console.error("No extendToDate found in transaction");
     return;
@@ -123,34 +217,48 @@ export const handleExtendBookingSuccess = async (session: any) => {
     return;
   }
 
-  //  Update transaction
-  transaction.status = TRANSACTION_STATUS.SUCCESS;
-  transaction.stripePaymentIntentId = session.payment_intent;
-  await transaction.save();
-
-  // Update booking time and amounts
+  // ---------------------------
+  // 🔄 Update booking timeline
+  // ---------------------------
   const oldToDate = booking.toDate;
   booking.toDate = newToDate;
 
-  // Update cumulative totals in booking
+  // ---------------------------
+  // 💰 Revenue aggregation
+  // ---------------------------
   const extensionPlatformFee = transaction.charges?.platformFee || 0;
   const extensionHostCommission = transaction.charges?.hostCommission || 0;
   const extensionAdminCommission = transaction.charges?.adminCommission || 0;
-  const extensionRentalPrice = transaction.amount - extensionPlatformFee;
 
-  (booking as any).rentalPrice =
-    ((booking as any).rentalPrice || 0) + extensionRentalPrice;
-  (booking as any).platformFee =
-    ((booking as any).platformFee || 0) + extensionPlatformFee;
-  (booking as any).hostCommission =
-    ((booking as any).hostCommission || 0) + extensionHostCommission;
-  (booking as any).adminCommission =
-    ((booking as any).adminCommission || 0) + extensionAdminCommission;
-  booking.totalAmount = (booking.totalAmount || 0) + transaction.amount;
-  // booking.extendedHours =
-  //   (booking.extendedHours || 0) + (transaction.extendedHours || 0);
+  // IMPORTANT: safer than derived amount
+  const extensionBasePrice =
+    transaction.amount - extensionPlatformFee;
 
-  // Optional: store extend history
+  booking.rentalPrice =
+    (booking.rentalPrice || 0) + extensionBasePrice;
+
+  booking.platformFee =
+    (booking.platformFee || 0) + extensionPlatformFee;
+
+  booking.hostCommission =
+    (booking.hostCommission || 0) + extensionHostCommission;
+
+  booking.adminCommission =
+    (booking.adminCommission || 0) + extensionAdminCommission;
+
+  booking.totalAmount =
+    (booking.totalAmount || 0) + transaction.amount;
+
+  // ---------------------------
+  // ⏱ Extended Hours fix
+  // ---------------------------
+  booking.extendedHours =
+    (booking.extendedHours || 0) +
+    (transaction.extendedHours || 0);
+
+  // ---------------------------
+  // 📜 Extend history log
+  // ---------------------------
   booking.extendHistory = [
     ...(booking.extendHistory || []),
     {
@@ -163,7 +271,7 @@ export const handleExtendBookingSuccess = async (session: any) => {
 
   await booking.save();
 
-  console.log(` Booking ${booking._id} extended to ${newToDate}`);
+  console.log(`✅ Booking ${booking._id} extended to ${newToDate}`);
 };
 
 /** Handle host account.updated → mark onboarded */

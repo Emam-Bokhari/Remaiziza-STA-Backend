@@ -68,10 +68,84 @@ export const calculateFirstTimeBookingAmount = async (
   };
 };
 
+// [PREVIOUS CODE]
+// export const calculateExtendBookingAmount = async (
+//   from: Date,
+//   to: Date,
+//   car: any,
+// ): Promise<any> => {
+//   if (!from || !to) {
+//     throw new Error("Invalid date provided");
+//   }
+
+//   const fromTime = new Date(from);
+//   const toTime = new Date(to);
+
+//   if (isNaN(fromTime.getTime()) || isNaN(toTime.getTime())) {
+//     throw new Error("Invalid date format");
+//   }
+
+//   const diffMs = toTime.getTime() - fromTime.getTime();
+
+//   if (diffMs <= 0) {
+//     throw new Error("Extend time must be after current booking end");
+//   }
+
+//   const totalHours = diffMs / (1000 * 60 * 60);
+
+//   if (!Number.isInteger(totalHours)) {
+//     throw new Error("Extend must be full hour slots");
+//   }
+
+//   if (!car?.dailyPrice || isNaN(car.dailyPrice)) {
+//     throw new Error("Invalid car daily price");
+//   }
+
+//   const hourlyRate = car.dailyPrice / 24;
+//   const baseExtendPrice = hourlyRate * totalHours;
+
+//   // Get charges configuration
+//   const charges = await Charges.findOne();
+//   if (!charges) {
+//     throw new ApiError(404, "Charges configuration not found");
+//   }
+
+//   const normalize = (percent: number) =>
+//     percent > 1 ? percent / 100 : percent;
+
+//   const platformPercent = normalize(charges.platformFee);
+//   const hostPercent = normalize(charges.hostCommission);
+//   const adminPercent = normalize(charges.adminCommission);
+
+//   // Calculate fees for extend
+//   const platformFee = +(baseExtendPrice * platformPercent).toFixed(2);
+//   const hostCommission = +(baseExtendPrice * hostPercent).toFixed(2);
+//   const adminCommission = +(
+//     baseExtendPrice -
+//     platformFee -
+//     hostCommission
+//   ).toFixed(2);
+
+//   const totalAmount = baseExtendPrice + platformFee;
+
+//   return {
+//     totalAmount: Number(totalAmount.toFixed(2)),
+//     baseExtendPrice: Number(baseExtendPrice.toFixed(2)),
+//     platformFee: Number(platformFee.toFixed(2)),
+//     hostCommission: Number(hostCommission.toFixed(2)),
+//     adminCommission: Number(adminCommission.toFixed(2)),
+//     extendedHours: totalHours,
+//   };
+// };
+
+const round = (value: number) => Number(value.toFixed(2));
+
+// [NEW CODE]
 export const calculateExtendBookingAmount = async (
   from: Date,
   to: Date,
   car: any,
+  charges: any, // ✅ moved outside (IMPORTANT)
 ): Promise<any> => {
   if (!from || !to) {
     throw new Error("Invalid date provided");
@@ -90,25 +164,26 @@ export const calculateExtendBookingAmount = async (
     throw new Error("Extend time must be after current booking end");
   }
 
-  const totalHours = diffMs / (1000 * 60 * 60);
+  // ⛔ FIX: floating issue safe conversion
+  const totalHours = Math.round(diffMs / (1000 * 60 * 60));
 
-  if (!Number.isInteger(totalHours)) {
-    throw new Error("Extend must be full hour slots");
+  if (totalHours <= 0) {
+    throw new Error("Extend must be valid hour slots");
   }
 
   if (!car?.dailyPrice || isNaN(car.dailyPrice)) {
     throw new Error("Invalid car daily price");
   }
 
+  // 💰 hourly calculation
   const hourlyRate = car.dailyPrice / 24;
-  const baseExtendPrice = hourlyRate * totalHours;
+  const baseExtendPrice = round(hourlyRate * totalHours);
 
-  // Get charges configuration
-  const charges = await Charges.findOne();
   if (!charges) {
     throw new ApiError(404, "Charges configuration not found");
   }
 
+  // normalize percent
   const normalize = (percent: number) =>
     percent > 1 ? percent / 100 : percent;
 
@@ -116,23 +191,24 @@ export const calculateExtendBookingAmount = async (
   const hostPercent = normalize(charges.hostCommission);
   const adminPercent = normalize(charges.adminCommission);
 
-  // Calculate fees for extend
-  const platformFee = +(baseExtendPrice * platformPercent).toFixed(2);
-  const hostCommission = +(baseExtendPrice * hostPercent).toFixed(2);
-  const adminCommission = +(
-    baseExtendPrice -
-    platformFee -
-    hostCommission
-  ).toFixed(2);
+  // 💸 fees calculation
+  const platformFee = round(baseExtendPrice * platformPercent);
+  const hostCommission = round(baseExtendPrice * hostPercent);
 
-  const totalAmount = baseExtendPrice + platformFee;
+  // 👉 consistent admin calculation (safe)
+  const adminCommission = round(
+    baseExtendPrice - platformFee - hostCommission,
+  );
+
+  // 💵 final amount
+  const totalAmount = round(baseExtendPrice + platformFee);
 
   return {
-    totalAmount: Number(totalAmount.toFixed(2)),
-    baseExtendPrice: Number(baseExtendPrice.toFixed(2)),
-    platformFee: Number(platformFee.toFixed(2)),
-    hostCommission: Number(hostCommission.toFixed(2)),
-    adminCommission: Number(adminCommission.toFixed(2)),
+    totalAmount,
+    baseExtendPrice,
+    platformFee,
+    hostCommission,
+    adminCommission,
     extendedHours: totalHours,
   };
 };

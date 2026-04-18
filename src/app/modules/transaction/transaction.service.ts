@@ -11,6 +11,7 @@ import { TRANSACTION_STATUS, TRANSACTION_TYPE } from "./transaction.interface";
 import { Transaction } from "./transaction.model";
 import { User } from "../user/user.model";
 import { USER_ROLES } from "../../../enums/user";
+import { Charges } from "../charges/charges.model";
 
 const createBookingPaymentSession = async (
   bookingId: string,
@@ -156,11 +157,19 @@ const createExtendBookingPaymentSession = async (
   );
 
   // calculate extended amount
+
+  const charge = await Charges.findOne();
+
+  if (!charge) {
+    throw new ApiError(404, "Charges configuration not found");
+  }
+
   const car = booking.carId as any;
   const extensionCalculation = await calculateExtendBookingAmount(
     booking.toDate,
     newToDate,
     car,
+    charge,
   );
 
   const extendedAmount = extensionCalculation.totalAmount;
@@ -179,6 +188,7 @@ const createExtendBookingPaymentSession = async (
     type: TRANSACTION_TYPE.EXTEND,
     status: TRANSACTION_STATUS.INITIATED,
     extendToDate: newToDate,
+    extendedHours: extensionCalculation.extendedHours,
     charges: {
       platformFee: charges.platformFee,
       hostCommission: charges.hostCommission,
