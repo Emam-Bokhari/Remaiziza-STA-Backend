@@ -17,6 +17,8 @@ const support = async (id: string, payload: TSupport) => {
 
   payload.userId = new Types.ObjectId(id);
 
+  payload.name = user.name || "Unknown";
+
   const supportEntry = await Support.create(payload);
 
   const emailPayload: ISendEmail = {
