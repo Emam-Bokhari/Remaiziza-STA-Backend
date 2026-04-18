@@ -20,7 +20,7 @@ const support = async (id: string, payload: TSupport) => {
   const supportEntry = await Support.create(payload);
 
   const emailPayload: ISendEmail = {
-    to: config.support_receiver_email || "support@gogreenmatrix.com",
+    to: config.support_receiver_email || "enquiry@gogreenmatrix.com",
     subject: `GoGreenMatrix Support Request: ${payload.subject}`,
     html: `
 <body style="margin:0;padding:0;background:#ffffff;font-family:Arial,Helvetica,sans-serif;">
