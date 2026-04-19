@@ -105,10 +105,10 @@ export type ArrayActionValue =
   | string
   | Types.ObjectId
   | {
-      label: string;
-      value: string;
-      icon?: string;
-    };
+    label: string;
+    value: string;
+    icon?: string;
+  };
 
 export interface IArrayAction {
   field: "images" | "availableDays" | "facilities" | "assignedHosts";
@@ -881,7 +881,7 @@ const parseQueryParams = (params: any) => {
 //     });
 //   }
 
-//   // ✅ NEW: Bulk check — which cars has this user paid for?
+//   //  NEW: Bulk check — which cars has this user paid for?
 //   let paidCarIds = new Set<string>();
 
 //   if (userId && filteredCars.length > 0) {
@@ -914,7 +914,7 @@ const parseQueryParams = (params: any) => {
 
 //   // Attach hasUserPaid to each car
 //   filteredCars.forEach((car) => {
-//     car.hasUserPaid = paidCarIds.has(car._id.toString()); // ✅
+//     car.hasUserPaid = paidCarIds.has(car._id.toString()); // 
 //   });
 
 //   return {
@@ -984,8 +984,8 @@ const getNearbyCarsFromDB = async (params: any) => {
 
   // Search term
   if (searchTerm && searchTerm.trim()) {
-    const trimmedSearch = normalizeSearchInput(searchTerm); // ✅ normalize
-    const escapedSearch = escapeRegex(trimmedSearch);       // ✅ escape
+    const trimmedSearch = normalizeSearchInput(searchTerm);
+    const escapedSearch = escapeRegex(trimmedSearch);
     const searchRegex = new RegExp(escapedSearch, "i");
 
     queryFilters.$or = [
@@ -1004,14 +1004,14 @@ const getNearbyCarsFromDB = async (params: any) => {
             {
               $regexMatch: {
                 input: { $concat: ["$brand", " ", "$model"] },
-                regex: escapedSearch, // ✅ escape
+                regex: escapedSearch, //  escape
                 options: "i",
               },
             },
             {
               $regexMatch: {
                 input: { $concat: ["$model", " ", "$brand"] },
-                regex: escapedSearch, // ✅ escape
+                regex: escapedSearch, //  escape
                 options: "i",
               },
             },
@@ -1024,24 +1024,24 @@ const getNearbyCarsFromDB = async (params: any) => {
   // Location filters
   if (city && city.trim()) {
     queryFilters.city = {
-      $regex: new RegExp(escapeRegex(normalizeSearchInput(city)), "i"), // ✅
+      $regex: new RegExp(escapeRegex(normalizeSearchInput(city)), "i"),
     };
   }
   if (state && state.trim()) {
     queryFilters.state = {
-      $regex: new RegExp(escapeRegex(normalizeSearchInput(state)), "i"), // ✅
+      $regex: new RegExp(escapeRegex(normalizeSearchInput(state)), "i"),
     };
   }
   if (country && country.trim()) {
     queryFilters.country = {
-      $regex: new RegExp(escapeRegex(normalizeSearchInput(country)), "i"), // ✅
+      $regex: new RegExp(escapeRegex(normalizeSearchInput(country)), "i"),
     };
   }
 
   // Brand filter
   if (brand && brand.trim()) {
     queryFilters.brand = {
-      $regex: new RegExp(escapeRegex(normalizeSearchInput(brand)), "i"), // ✅
+      $regex: new RegExp(escapeRegex(normalizeSearchInput(brand)), "i"),
     };
   }
 
@@ -1248,7 +1248,7 @@ const getNearbyCarsFromDB = async (params: any) => {
     });
   }
 
-  // ✅ Bulk check — which cars has this user paid for?
+  // Bulk check — which cars has this user paid for?
   let paidCarIds = new Set<string>();
 
   if (userId && filteredCars.length > 0) {
@@ -1304,7 +1304,7 @@ const getCarByIdForUserFromDB = async (id: string, userId: string) => {
   if (!car) {
     return null;
   }
-  
+
   const now = new Date();
 
   // --- Run database queries in parallel for performance ---
