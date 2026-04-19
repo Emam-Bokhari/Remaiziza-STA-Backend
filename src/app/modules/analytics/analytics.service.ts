@@ -65,7 +65,7 @@ const getDashboardStats = async () => {
     ].length;
 
     return {
-      totalRevenue,
+      totalRevenue: Number(totalRevenue.toFixed(2)),
       totalBookings,
       activeVehicles,
       totalCustomers,
@@ -141,15 +141,30 @@ const getYearlyRevenueChart = async (year?: number) => {
     { $sort: { month: 1 } },
   ]);
 
+  // const result = Array.from({ length: 12 }, (_, i) => {
+  //   const monthData = chartData.find((d) => d.month === i + 1);
+  //   return {
+  //     month: i + 1,
+  //     totalRevenue: monthData?.totalRevenue || 0,
+  //     platformFee: monthData?.platformFee || 0,
+  //     adminCommission: monthData?.adminCommission || 0,
+  //     hostEarnings: monthData?.hostEarnings || 0,
+  //     grossRevenue: monthData?.grossRevenue || 0,
+  //   };
+  // });
+  const formatMoney = (value: number | undefined) =>
+    Number((value ?? 0).toFixed(2));
+
   const result = Array.from({ length: 12 }, (_, i) => {
     const monthData = chartData.find((d) => d.month === i + 1);
+
     return {
       month: i + 1,
-      totalRevenue: monthData?.totalRevenue || 0,
-      platformFee: monthData?.platformFee || 0,
-      adminCommission: monthData?.adminCommission || 0,
-      hostEarnings: monthData?.hostEarnings || 0,
-      grossRevenue: monthData?.grossRevenue || 0,
+      totalRevenue: formatMoney(monthData?.totalRevenue),
+      platformFee: formatMoney(monthData?.platformFee),
+      adminCommission: formatMoney(monthData?.adminCommission),
+      hostEarnings: formatMoney(monthData?.hostEarnings),
+      grossRevenue: formatMoney(monthData?.grossRevenue),
     };
   });
 
